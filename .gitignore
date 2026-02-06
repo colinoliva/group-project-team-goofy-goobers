@@ -157,6 +157,9 @@ docker-data/
 *.bak
 *.backup
 
+.vscode 
+
+
 # ===========================
 # Project Specific
 # ===========================
