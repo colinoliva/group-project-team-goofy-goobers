@@ -41,7 +41,7 @@
 | February 27th, 2026 | 30 minutes | In-person | Paul, Raghav, Colin, Ernest | Contact Professor Rojas about the TI project and meet with Professor Bhaskar | 2            |
 | March 6th, 2026     | 30 minutes | In-person | Paul, Raghav, Colin, Ernest | Start work on Raspberry PI accessories and computer communication            | 2            |
 | March 13th, 2026    | 30 minutes | In-person | Paul, Raghav, Colin, Ernest | Continue work on Raspberry PI accessories and computer communication |  2            |
-|                     |            | In-person / Remote |                             |                                                                              |              |
+| March 20th, 2026    | 30 minutes | Remote    | Paul, Raghav, Colin, Ernest | Meeting next week with TI, be sure to attend |  0            |
 |                     |            | In-person / Remote |                             |                                                                              |              |
 |                     |            | In-person / Remote |                             |                                                                              |              |
 |                     |            | In-person / Remote |                             |                                                                              |              |
@@ -214,9 +214,31 @@
 
 ---
 
+### March 20th, 2026 - Team Meeting
+
+**Attendees:** Paul, Raghav, Colin, Ernest
+
+## **Discussion:**
+
+- Raspberry Pi can connect with computer through direct connection
+- Pi can also connect through wireless means
+- Pi is powerful enough that we could just have everything run on the Pi
+- TI meeting next week Monday 23rd at 11 AM, Professor Bhaskar has been notified
+
+## **Decisions:**
+- Be ready to attend TI meeting
+
+**Action Items:**
+
+- None
+
+---
+
+## Meeting Notes
+
 ### [Date] - [Advisor/Team] Meeting
 
-**Attendees:**
+**Attendees:** Paul, Raghav, Colin, Ernest
 
 ## **Discussion:**
 
