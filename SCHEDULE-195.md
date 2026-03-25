@@ -236,18 +236,21 @@
 
 ## Meeting Notes
 
-### [Date] - [Advisor/Team] Meeting
+### March 25th, 2026 - Team Meeting
 
 **Attendees:** Paul, Raghav, Colin, Ernest
 
 ## **Discussion:**
+- TI meeting went well
+- Talked about required components that we need from TI
 
 ## **Decisions:**
+- Send list of TI components we need to Professor Rojas
+- Wait until TI sends us the components
 
 **Action Items:**
 
-- [Task] - [Owner] - [Due]
-- [Task] - [Owner] - [Due]
+- Send list of TI components we need to Professor Rojas - Colin Oliva - March 27th
 
 ---
 
