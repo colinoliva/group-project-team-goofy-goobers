@@ -156,6 +156,7 @@ docker-data/
 .serverless/
 *.bak
 *.backup
+requirements.txt
 
 .vscode 
 
