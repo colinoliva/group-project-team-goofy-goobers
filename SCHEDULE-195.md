@@ -34,16 +34,16 @@
 
 | Date                | Duration   | Format             | Attendees                   | Summary                                                                      | Action Items |
 | ------------------- | ---------- | ------------------ | --------------------------- | ---------------------------------------------------------------------------- | ------------ |
-| January 23rd, 2026  | 30 minutes | In-person | Paul, Raghav, Colin, Ernest | Setting up teams and project brainstorming                                   | 1            |
-| January 30th, 2026  | 30 minutes | In-person | Paul, Raghav, Colin, Ernest | Talk to professor about TI projects and complete form when available         | 1            |
-| February 6th, 2026  | 30 minutes | In-person | Paul, Raghav, Colin, Ernest | Get more information about the TI projects from Professor Rojas              | 2            |
-| February 20th, 2026 | 30 minutes | In-person | Paul, Raghav, Colin, Ernest | Wait for Professor Rojas to contact TI                                       | 0            |
-| February 27th, 2026 | 30 minutes | In-person | Paul, Raghav, Colin, Ernest | Contact Professor Rojas about the TI project and meet with Professor Bhaskar | 2            |
-| March 6th, 2026     | 30 minutes | In-person | Paul, Raghav, Colin, Ernest | Start work on Raspberry PI accessories and computer communication            | 2            |
-| March 13th, 2026    | 30 minutes | In-person | Paul, Raghav, Colin, Ernest | Continue work on Raspberry PI accessories and computer communication |  2            |
-| March 20th, 2026    | 30 minutes | Remote    | Paul, Raghav, Colin, Ernest | Meeting next week with TI, be sure to attend |  0            |
-|                     |            | In-person / Remote |                             |                                                                              |              |
-|                     |            | In-person / Remote |                             |                                                                              |              |
+| January 23rd, 2026  | 30 minutes | In-person | Paul, Raghav, Colin, Ernest | Setting up teams and project brainstorming                                            | 1            |
+| January 30th, 2026  | 30 minutes | In-person | Paul, Raghav, Colin, Ernest | Talk to professor about TI projects and complete form when available                  | 1            |
+| February 6th, 2026  | 30 minutes | In-person | Paul, Raghav, Colin, Ernest | Get more information about the TI projects from Professor Rojas                       | 2            |
+| February 20th, 2026 | 30 minutes | In-person | Paul, Raghav, Colin, Ernest | Wait for Professor Rojas to contact TI                                                | 0            |
+| February 27th, 2026 | 30 minutes | In-person | Paul, Raghav, Colin, Ernest | Contact Professor Rojas about the TI project and meet with Professor Bhaskar          | 2            |
+| March 6th, 2026     | 30 minutes | In-person | Paul, Raghav, Colin, Ernest | Start work on Raspberry PI accessories and computer communication                     | 2            |
+| March 13th, 2026    | 30 minutes | In-person | Paul, Raghav, Colin, Ernest | Continue work on Raspberry PI accessories and computer communication                  | 2            |
+| March 20th, 2026    | 30 minutes | Remote    | Paul, Raghav, Colin, Ernest | Meeting next week with TI, be sure to attend                                          | 0            |
+| March 25th, 2026    | 30 minutes | Remote    | Paul, Raghav, Colin, Ernest | Work on proof of concept without mmWave sensors for now                               | 1            |
+| April 10th, 2026    | 30 minutes | Remote    | Paul, Raghav, Colin, Ernest | Continue with POC and submit Report 2 ASAP                                            | 2            |
 |                     |            | In-person / Remote |                             |                                                                              |              |
 |                     |            | In-person / Remote |                             |                                                                              |              |
 |                     |            | In-person / Remote |                             |                                                                              |              |
@@ -249,8 +249,27 @@
 - Wait until TI sends us the components
 
 **Action Items:**
-
 - Send list of TI components we need to Professor Rojas - Colin Oliva - March 27th
+- Work on POC by report due date - Everyone - April 10th
+
+---
+
+## Meeting Notes
+
+### April 10th, 2026 - Team Meeting
+
+**Attendees:** Paul, Raghav, Colin, Ernest
+
+## **Discussion:**
+- Professor Rojas said a POC without mmWave sensors is okay
+
+## **Decisions:**
+- Continue POC, finish by report due date next Monday April 13th
+- Finish report
+
+**Action Items:**
+- Work on POC by report - Everyone - April 13th
+- Finish report - Everyone - April 13th
 
 ---
 
