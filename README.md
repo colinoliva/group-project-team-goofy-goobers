@@ -1,27 +1,28 @@
 # Project Title
 
-> One-line description of what your project does
+Texas Instruments Raspberry Pi mmWave Radar Sensor 
 
 ## Team
 
 | Name | GitHub | Email |
 |------|--------|-------|
-| Name 1 | [@username](https://github.com/username) | name@sjsu.edu |
-| Name 2 | [@username](https://github.com/username) | name@sjsu.edu |
-| Name 3 | [@username](https://github.com/username) | name@sjsu.edu |
-| Name 4 | [@username](https://github.com/username) | name@sjsu.edu |
+| Paul Brandon Estigoy | [@Brannflakess](https://github.com/Brannflakess) | paulbrandon.estigoy@sjsu.edu |
+| Raghav Gautam| [@RaghavG17](https://github.com/RaghavG17) | raghav.gautam@sjsu.edu |
+| Colin Oliva | [@colinoliva](https://github.com/colinoliva) | colin.oliva@sjsu.edu |
+| Ernest Ma | [@maernest04](https://github.com/maernest04) | ernest.ma@sjsu.edu |
 
-**Advisor:** [Advisor Name]
+**Advisor:** Charan Bhaskar
 
 ---
 
 ## Problem Statement
 
-[2-3 sentences describing the problem you're solving and why it matters]
+Achieving reliable and affordable 3D environment mapping remains a significant hurdle for DIY developers, robotics teams, and small businesses. While industrial-grade LiDAR offers high precision, its prohibitive cost limits its accessibility. Conversely, low-cost radar sensors frequently suffer from signal noise and false positives when operated as standalone units, leading to untrustworthy spatial data in consumer applications like surveillance and monitoring. The core technical challenge lies in the inherent limitations of single-sensor deployments; however, by synchronizing multiple sensors in a unified array, it is possible to mitigate noise and achieve high-fidelity 3D mapping that rivals expensive industrial systems at a fraction of the cost.
+
 
 ## Solution
 
-[2-3 sentences describing your solution approach]
+Our solution leverages an array of synchronized Texas Instruments mmWave radar sensors interfaced with a Raspberry Pi to provide high-precision 3D mapping at a consumer-friendly price point. By implementing an edge-based processing pipeline, the system utilizes advanced spatial algorithms—including DBSCAN clustering, trilateration, and voxel downsampling—to aggregate data from multiple vantage points and filter out signal noise. This synchronized multi-sensor approach drastically reduces false positives and provides a robust, real-time 3D visualization, offering a reliable alternative to expensive industrial LiDAR systems.
 
 ### Key Features
 
