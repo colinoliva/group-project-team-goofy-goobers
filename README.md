@@ -1,4 +1,4 @@
-# Project Title
+# Texas Instruments mmWave Radar Sensor
 
 Texas Instruments Raspberry Pi mmWave Radar Sensor
 
