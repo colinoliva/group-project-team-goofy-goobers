@@ -11,7 +11,7 @@ Texas Instruments Raspberry Pi mmWave Radar Sensor
 | Colin Oliva | [@colinoliva](https://github.com/colinoliva) | colin.oliva@sjsu.edu |
 | Ernest Ma | [@maernest04](https://github.com/maernest04) | ernest.ma@sjsu.edu |
 
-**Advisor:** Charan Bhaskar
+**Advisor:** Dr. Charan Bhaskar
 
 ---
 
@@ -26,9 +26,10 @@ Our solution leverages an array of synchronized Texas Instruments mmWave radar s
 
 ### Key Features
 
-- Feature 1
-- Feature 2
-- Feature 3
+#### Hardware Implementation
+- Add stuff here
+#### Software Implementation with Mock TI Data
+- Add stuff here
 
 ---
 
