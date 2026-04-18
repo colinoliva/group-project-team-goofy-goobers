@@ -1,15 +1,15 @@
 # Project Title
 
-Texas Instruments Raspberry Pi mmWave Radar Sensor 
+Texas Instruments Raspberry Pi mmWave Radar Sensor
 
 ## Team
 
-| Name | GitHub | Email |
-|------|--------|-------|
+| Name                 | GitHub                                           | Email                        |
+| -------------------- | ------------------------------------------------ | ---------------------------- |
 | Paul Brandon Estigoy | [@Brannflakess](https://github.com/Brannflakess) | paulbrandon.estigoy@sjsu.edu |
-| Raghav Gautam| [@RaghavG17](https://github.com/RaghavG17) | raghav.gautam@sjsu.edu |
-| Colin Oliva | [@colinoliva](https://github.com/colinoliva) | colin.oliva@sjsu.edu |
-| Ernest Ma | [@maernest04](https://github.com/maernest04) | ernest.ma@sjsu.edu |
+| Raghav Gautam        | [@RaghavG17](https://github.com/RaghavG17)       | raghav.gautam@sjsu.edu       |
+| Colin Oliva          | [@colinoliva](https://github.com/colinoliva)     | colin.oliva@sjsu.edu         |
+| Ernest Ma            | [@maernest04](https://github.com/maernest04)     | ernest.ma@sjsu.edu           |
 
 **Advisor:** Dr. Charan Bhaskar
 
@@ -18,7 +18,6 @@ Texas Instruments Raspberry Pi mmWave Radar Sensor
 ## Problem Statement
 
 Achieving reliable and affordable 3D environment mapping remains a significant hurdle for DIY developers, robotics teams, and small businesses. While industrial-grade LiDAR offers high precision, its prohibitive cost limits its accessibility. Conversely, low-cost radar sensors frequently suffer from signal noise and false positives when operated as standalone units, leading to untrustworthy spatial data in consumer applications like surveillance and monitoring. The core technical challenge lies in the inherent limitations of single-sensor deployments; however, by synchronizing multiple sensors in a unified array, it is possible to mitigate noise and achieve high-fidelity 3D mapping that rivals expensive industrial systems at a fraction of the cost.
-
 
 ## Solution
 
@@ -31,6 +30,7 @@ Our solution leverages an array of synchronized Texas Instruments mmWave radar s
 System utilzies a TI MSPM0g3507 Microcontroller to interface three HC-SR04 ultrasonic sensors and to simulate a multi sensor embedded pipeline.
 
 Current setup includes:
+
 - 1x TI MSPM0G3507 LaunchPad
 - 3x HC-SR04 Ultrasonic Sensors
 - Resistors (1k and 2k for voltage dividers)
@@ -44,15 +44,17 @@ Since the ECHO pin outputs 5 volts a voltage divider needs to be used to step it
 ![alt text](image.png)
 
 How the Sensor Operation works:
+
 1. MCU sends a short pulse to the TRIG pin.
 2. Sensor emits an ultrasonic signal.
 3. When the echo returns, the ECHO pins goes HIGH.
 4. The duration of the HIGH signal calculates the distance.
 
 Multi-Sensor Design:
+
 - Each sensor uses unique GPIO pins
 - Sensors are triggered one at a time
-- Small Delay is added between readings to avoid interference. 
+- Small Delay is added between readings to avoid interference.
 
 Purpose is to simulate an end to end pipe line. Hardware Implementation works on the Sensor, Embedded, and Communication layers.
 
@@ -67,41 +69,42 @@ This allows real time monitoring for the system.
 
 Current Status
 While we wait for the TI mmWave sensors, this system will act as a mock version of validating:
+
 - Multi Sensor coordination
 - Embedded Data Processing
 - Serial Communication Pipeline
-This ensures a strong foundation for when we integrate with the final sensors.
+  This ensures a strong foundation for when we integrate with the final sensors.
 
 #### Software Implementation with Mock TI Data
-- Add stuff here
+
+- A separate python script uses mock data to simulate a 3D environment that the TI IWR6843AOPEVM mmWave radar sensors would produce in theory.
+- ![alt text](Architecture-Diagram.png)
 
 ---
 
 ## Demo
 
-[Link to demo video or GIF]
-
-**Live Demo:** [URL if deployed]
+**Mock Data Demo:** https://drive.google.com/file/d/1wVJb_W66xzq6F7lCRgQK-DBDRxVU7pMl/view?usp=sharing
 
 ---
 
 ## Screenshots
 
-| Feature | Screenshot |
-|---------|------------|
-| [Feature 1] | ![Screenshot](docs/screenshots/feature1.png) |
-| [Feature 2] | ![Screenshot](docs/screenshots/feature2.png) |
+| Feature                            | Screenshot                               |
+| ---------------------------------- | ---------------------------------------- |
+| Software Mock Data 3D Mapping      | ![alt text](Mock-Simulation.png)         |
+| 3 Ultrasonic Sensor Implementation | ![alt text](Ultrasonic-Sensor-Setup.png) |
 
 ---
 
 ## Tech Stack
 
-| Category | Technology |
-|----------|------------|
-| Frontend | |
-| Backend | |
-| Database | |
-| Deployment | |
+| Category | Technology                                                             |
+| -------- | ---------------------------------------------------------------------- |
+| Frontend | Dash                                                                   |
+| Backend  | C, Python (Open3D, Plotly, NumPy)                                      |
+| Database | Local Storage on Raspberry Pi 4                                        |
+| Hardware | TI LaunchPad LP-MSPM0G3507, HC-SR04 Ultrasonic Sensors, Raspberry Pi 4 |
 
 ---
 
@@ -109,73 +112,74 @@ This ensures a strong foundation for when we integrate with the final sensors.
 
 ### Prerequisites
 
-- [Prerequisite 1] v.X.X+
-- [Prerequisite 2] v.X.X+
+- Python 3.8+ (3.10 recommended)
+- `pip` (or a Python package manager such as `pipx`/`pipenv`)
+- Optional: `virtualenv` / `venv` to create an isolated environment
+- For the full processing pipeline (`ti_sim.py`): `open3d` and its native dependencies (may require additional build tools)
+- For low-resource devices (Raspberry Pi) use `simple_ti_sim.py` which avoids `open3d`
 
 ### Installation
 
 ```bash
 # Clone the repository
-git clone https://github.com/[org]/[repo].git
+git clone https://github.com/SJSU-CMPE-195/group-project-team-goofy-goobers.git
 cd [repo]
+```
 
-# Install dependencies
-[install command]
+### Install dependencies
 
-# Set up environment variables
-cp .env.example .env
-# Edit .env with your values
+1. Change into the prototype software folder:
 
-# Run database migrations (if applicable)
-[migration command]
+```bash
+cd src/prototype/software
+```
+
+2. Install dependencies:
+
+```bash
+# Install everything listed in the repo requirements (if present)
+pip install --upgrade pip
+pip install -r requirements.txt
+
+# Or install the minimal set for the lightweight demo
+pip install numpy dash plotly
+
+# If you plan to run the full Open3D pipeline:
+pip install open3d
 ```
 
 ### Running Locally
 
-```bash
-# Development mode
-[dev command]
-
-# The app will be available at http://localhost:XXXX
-```
-
-### Running Tests
+Run the lightweight simulator (recommended for quick checks or Raspberry Pi):
 
 ```bash
-[test command]
+cd src/prototype/software
+python simple_ti_sim.py
 ```
 
----
+Run the full processing pipeline (requires `open3d`):
 
-## API Reference
+```bash
+cd src/prototype/software
+python ti_sim.py
+```
 
-<details>
-<summary>Click to expand API endpoints</summary>
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/resource` | Get all resources |
-| GET | `/api/resource/:id` | Get resource by ID |
-| POST | `/api/resource` | Create new resource |
-| PUT | `/api/resource/:id` | Update resource |
-| DELETE | `/api/resource/:id` | Delete resource |
-
-</details>
-
----
+Both scripts start a Dash app listening on `http://localhost:8050` by default. Open that URL in your browser (or use `http://<device-ip>:8050` from another device on the same network).
 
 ## Project Structure
 
-```
-.
-├── [folder]/           # Description
-├── src/                # Source code files
-├── tests/              # Test files
-├── docs/               # Documentation files
-└── README.md
-```
+Relevant prototype layout:
 
----
+- `src/prototype/`
+  - `hardware/` — hardware notes, schematics and TI microcontroller examples ([src/prototype/hardware/HARDWARE.md](src/prototype/hardware/HARDWARE.md#L1))
+  - `software/` — simulation and visualization scripts
+    - `mapping_mock_data.py` — trilateration / ultrasonic mock data and small plotting helper ([src/prototype/software/mapping_mock_data.py](src/prototype/software/mapping_mock_data.py#L1))
+    - `simple_ti_sim.py` — lightweight Dash + Plotly 3D mock simulator (recommended)
+    - `ti_sim.py` — full Open3D processing pipeline + Dash visualization (heavier dependencies)
+
+- `tests/` — unit tests for the prototype code (for example, [tests/test_mapping_mock_data.py](tests/test_mapping_mock_data.py#L1))
+
+## Use `src/prototype/software` as the working directory when running the prototype demos.
 
 ## Contributing
 
@@ -194,23 +198,17 @@ cp .env.example .env
 ### Commit Messages
 
 Use clear, descriptive commit messages:
+
 - `Add user authentication endpoint`
 - `Fix database connection timeout issue`
 - `Update README with setup instructions`
 
 ---
 
-## Acknowledgments
-
-- [Resource/Library/Person]
-- [Resource/Library/Person]
-
----
-
-## License
+<!-- ## License
 
 This project is licensed under the <FILL IN> License - see the [LICENSE](LICENSE) file for details.
 
----
+--- -->
 
-*CMPE 195A/B - Senior Design Project | San Jose State University | Spring 2026*
+_CMPE 195A/B - Senior Design Project | San Jose State University | Spring 2026_
