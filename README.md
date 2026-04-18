@@ -41,6 +41,7 @@ Each sensor is connected to the microcontroller and used GPIO pins for both the 
 Since the ECHO pin outputs 5 volts a voltage divider needs to be used to step it down to 3.3v to safely connect to the microcontroller.
 
 (SEE src/hardware/Schematics FOR BREADBOARD AND RESISTOR IMPLEMENTATION)
+![alt text](image.png)
 
 How the Sensor Operation works:
 1. MCU sends a short pulse to the TRIG pin.

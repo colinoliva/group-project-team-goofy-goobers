@@ -1,5 +1,6 @@
+import io
+
 import numpy as np
-import matplotlib.pyplot as plt
 
 # Sensor positions (EDIT THESE to match your setup)
 S1 = np.array([0, 0])
@@ -43,34 +44,49 @@ def trilaterate(p1, p2, p3, r1, r2, r3):
     except Exception:
         return None
 
-positions = []
+def compute_positions(sensor_triple, distance_rows):
+    """Return Nx2 array of trilaterated positions for rows with three finite distances."""
+    s1, s2, s3 = sensor_triple
+    out = []
+    for d1, d2, d3 in distance_rows:
+        if d1 is not None and d2 is not None and d3 is not None:
+            pos = trilaterate(s1, s2, s3, d1, d2, d3)
+            if pos is not None:
+                out.append(pos)
+    return np.array(out) if out else np.empty((0, 2))
 
-for d1, d2, d3 in data:
-    if d1 is not None and d2 is not None and d3 is not None:
-        pos = trilaterate(S1, S2, S3, d1, d2, d3)
-        if pos is not None:
-            positions.append(pos)
 
-positions = np.array(positions)
+def main():
+    import matplotlib.pyplot as plt
 
-# Plot
-if len(positions) > 0:
-    plt.figure(figsize=(10, 8))
-    plt.scatter(positions[:, 0], positions[:, 1], label="Object Positions", alpha=0.6)
-    
-    # Plot Sensors
-    sensors = np.array([S1, S2, S3])
-    plt.scatter(sensors[:, 0], sensors[:, 1], marker='x', color='red', s=100, label="Sensors")
-    
-    for i, txt in enumerate(["S1", "S2", "S3"]):
-        plt.text(sensors[i, 0] + 0.5, sensors[i, 1] + 0.5, txt, fontweight='bold')
+    positions = compute_positions((S1, S2, S3), data)
 
-    plt.title("Ultrasonic Trilateration Map")
-    plt.xlabel("X Coordinate")
-    plt.ylabel("Y Coordinate")
-    plt.legend()
-    plt.grid(True, linestyle='--', alpha=0.7)
-    plt.axis('equal')
-    plt.show()
-else:
-    print("No valid positions could be calculated. Check if your data points have all three sensor distances.")
+    if len(positions) > 0:
+        plt.figure(figsize=(10, 8))
+        plt.scatter(positions[:, 0], positions[:, 1], label="Object Positions", alpha=0.6)
+
+        sensors = np.array([S1, S2, S3])
+        plt.scatter(sensors[:, 0], sensors[:, 1], marker="x", color="red", s=100, label="Sensors")
+
+        for i, txt in enumerate(["S1", "S2", "S3"]):
+            plt.text(sensors[i, 0] + 0.5, sensors[i, 1] + 0.5, txt, fontweight="bold")
+
+        plt.title("Ultrasonic Trilateration Map")
+        plt.xlabel("X Coordinate")
+        plt.ylabel("Y Coordinate")
+        plt.legend()
+        plt.grid(True, linestyle="--", alpha=0.7)
+        plt.axis("equal")
+        if "agg" in plt.get_backend().lower():
+            plt.savefig(io.BytesIO(), format="png")
+            plt.close()
+        else:
+            plt.show()
+    else:
+        print(
+            "No valid positions could be calculated. Check if your data points have all three sensor distances."
+        )
+
+
+if __name__ == "__main__":
+    main()
