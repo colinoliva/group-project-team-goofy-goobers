@@ -29,7 +29,50 @@ Our solution leverages an array of synchronized Texas Instruments mmWave radar s
 ![alt text](image-1.png)
 
 #### Hardware Implementation
-- Add stuff here
+
+System utilzies a TI MSPM0g3507 Microcontroller to interface three HC-SR04 ultrasonic sensors and to simulate a multi sensor embedded pipeline.
+
+Current setup includes:
+- 1x TI MSPM0G3507 LaunchPad
+- 3x HC-SR04 Ultrasonic Sensors
+- Resistors (1k and 2k for voltage dividers)
+- Breadboard + jumper wires
+
+Each sensor is connected to the microcontroller and used GPIO pins for both the TRIG (output signal) & ECHO (input signal)
+
+Since the ECHO pin outputs 5 volts a voltage divider needs to be used to step it down to 3.3v to safely connect to the microcontroller.
+
+(SEE src/hardware/Schematics FOR BREADBOARD AND RESISTOR IMPLEMENTATION)
+
+How the Sensor Operation works:
+1. MCU sends a short pulse to the TRIG pin.
+2. Sensor emits an ultrasonic signal.
+3. When the echo returns, the ECHO pins goes HIGH.
+4. The duration of the HIGH signal calculates the distance.
+
+Multi-Sensor Design:
+- Each sensor uses unique GPIO pins
+- Sensors are triggered one at a time
+- Small Delay is added between readings to avoid interference. 
+
+Purpose is to simulate an end to end pipe line. Hardware Implementation works on the Sensor, Embedded, and Communication layers.
+
+UART OUTPUT:
+After computing the distances, MCU sends formatted data over serial:
+
+S1,dist=13.2
+S2,dist=25.7
+S3,dist=42.1
+
+This allows real time monitoring for the system.
+
+Current Status
+While we wait for the TI mmWave sensors, this system will act as a mock version of validating:
+- Multi Sensor coordination
+- Embedded Data Processing
+- Serial Communication Pipeline
+This ensures a strong foundation for when we integrate with the final sensors.
+
 #### Software Implementation with Mock TI Data
 - Add stuff here
 
