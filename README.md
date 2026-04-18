@@ -205,10 +205,17 @@ Use clear, descriptive commit messages:
 
 ---
 
+## What's Next (195B)
+- Obtain IWR6843AOPEVM mmWave sensors to implement actual 3D mapping data.
+- Implement sensors with existing hardware and software from this semesters PoC.
+- Implement IWR6843AOPEVM data to be sent from the TI boards to the Raspberry Pi 4 for DBSCAN cluster calculations, which will then be sent to a personal computer for displaying of 3D mapping.
+- Be able to provide an affordable option for 3D Mapping to possibly compete with industry grade sensors.
+
 <!-- ## License
 
 This project is licensed under the <FILL IN> License - see the [LICENSE](LICENSE) file for details.
 
 --- -->
+---
 
 _CMPE 195A/B - Senior Design Project | San Jose State University | Spring 2026_
