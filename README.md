@@ -26,6 +26,8 @@ Our solution leverages an array of synchronized Texas Instruments mmWave radar s
 
 ### Key Features
 
+![alt text](image-1.png)
+
 #### Hardware Implementation
 - Add stuff here
 #### Software Implementation with Mock TI Data
@@ -35,9 +37,7 @@ Our solution leverages an array of synchronized Texas Instruments mmWave radar s
 
 ## Demo
 
-[Link to demo video or GIF]
-
-**Live Demo:** [URL if deployed]
+**Mock Data Demo:** https://drive.google.com/file/d/1wVJb_W66xzq6F7lCRgQK-DBDRxVU7pMl/view?usp=sharing
 
 ---
 
@@ -45,7 +45,7 @@ Our solution leverages an array of synchronized Texas Instruments mmWave radar s
 
 | Feature | Screenshot |
 |---------|------------|
-| [Feature 1] | ![Screenshot](docs/screenshots/feature1.png) |
+| Software Mock Data 3D Mapping | ![alt text](image.png) |
 | [Feature 2] | ![Screenshot](docs/screenshots/feature2.png) |
 
 ---
@@ -54,10 +54,10 @@ Our solution leverages an array of synchronized Texas Instruments mmWave radar s
 
 | Category | Technology |
 |----------|------------|
-| Frontend | |
-| Backend | |
-| Database | |
-| Deployment | |
+| Frontend | Dash |
+| Backend | C, Python (Open3D, Plotly, NumPy) |
+| Database | Local Storage on Raspberry Pi 4 |
+| Hardware | TI LaunchPad LP-MSPM0G3507, HC-SR04 Ultrasonic Sensors, Raspberry Pi 4 |
 
 ---
 
