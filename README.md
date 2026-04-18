@@ -26,8 +26,6 @@ Our solution leverages an array of synchronized Texas Instruments mmWave radar s
 
 ### Key Features
 
-![alt text](image-1.png)
-
 #### Hardware Implementation
 
 System utilzies a TI MSPM0g3507 Microcontroller to interface three HC-SR04 ultrasonic sensors and to simulate a multi sensor embedded pipeline.
@@ -74,8 +72,8 @@ While we wait for the TI mmWave sensors, this system will act as a mock version 
 This ensures a strong foundation for when we integrate with the final sensors.
 
 #### Software Implementation with Mock TI Data
-- Add stuff here
-
+- A separate python script uses mock data to simulate a 3D environment that the TI IWR6843AOPEVM mmWave radar sensors would produce in theory.
+- ![alt text](Architecture-Diagram.png)
 ---
 
 ## Demo
@@ -88,8 +86,8 @@ This ensures a strong foundation for when we integrate with the final sensors.
 
 | Feature | Screenshot |
 |---------|------------|
-| Software Mock Data 3D Mapping | ![alt text](image.png) |
-| [Feature 2] | ![Screenshot](docs/screenshots/feature2.png) |
+| Software Mock Data 3D Mapping | ![alt text](Mock-Simulation.png) |
+| 3 Ultrasonic Sensor Implementation | ![alt text](Ultrasonic-Sensor-Setup.png) |
 
 ---
 
@@ -146,22 +144,6 @@ cp .env.example .env
 
 ---
 
-## API Reference
-
-<details>
-<summary>Click to expand API endpoints</summary>
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/resource` | Get all resources |
-| GET | `/api/resource/:id` | Get resource by ID |
-| POST | `/api/resource` | Create new resource |
-| PUT | `/api/resource/:id` | Update resource |
-| DELETE | `/api/resource/:id` | Delete resource |
-
-</details>
-
----
 
 ## Project Structure
 
@@ -199,12 +181,6 @@ Use clear, descriptive commit messages:
 
 ---
 
-## Acknowledgments
-
-- [Resource/Library/Person]
-- [Resource/Library/Person]
-
----
 
 ## License
 
