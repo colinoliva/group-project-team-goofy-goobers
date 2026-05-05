@@ -6,8 +6,8 @@
 #define CPUCLK_FREQ         32000000UL
 #define TRIG_PULSE_US       10
 #define ECHO_TIMEOUT_US     30000UL
-#define INTER_SENSOR_MS     60
-#define LOOP_DELAY_MS       100
+#define INTER_SENSOR_MS     20  // Reduced from 60ms for faster cycling
+#define LOOP_DELAY_MS       50   // Reduced from 100ms to achieve ~10Hz frame rate (100ms per full frame)
 
 // ----------------------
 // Sensor pin assignments
@@ -93,24 +93,19 @@ static bool read_hcsr04_avg(GPIO_Regs *trig_port, uint32_t trig_pin,
                             GPIO_Regs *echo_port, uint32_t echo_pin,
                             float *distance_cm)
 {
-    float d1, d2, d3;
+    float d1, d2;
     uint8_t count = 0;
     float sum = 0.0f;
 
+    // Take 2 readings and average (reduced from 3 for faster frame rate)
     if (read_hcsr04(trig_port, trig_pin, echo_port, echo_pin, &d1)) {
         sum += d1;
         count++;
     }
-    delay_ms(20);
+    delay_ms(10);
 
     if (read_hcsr04(trig_port, trig_pin, echo_port, echo_pin, &d2)) {
         sum += d2;
-        count++;
-    }
-    delay_ms(20);
-
-    if (read_hcsr04(trig_port, trig_pin, echo_port, echo_pin, &d3)) {
-        sum += d3;
         count++;
     }
 
