@@ -80,6 +80,18 @@ While we wait for the TI mmWave sensors, this system will act as a mock version 
 - A separate python script uses mock data to simulate a 3D environment that the TI IWR6843AOPEVM mmWave radar sensors would produce in theory.
 - ![alt text](Architecture-Diagram.png)
 
+#### Live 2D Mapper
+
+- The software folder also includes a live 2D mapper that listens for UART lines in the format `S1,dist=13.2`, `S2,dist=25.7`, `S3,dist=42.1`.
+- Once all three distances for a frame are received, the Python app trilaterates the position and updates a browser-based 2D map.
+
+```bash
+cd src/prototype/software
+python live_2d_mapper.py --serial-port /dev/ttyACM0 --baud 115200
+```
+
+- Use `python live_2d_mapper.py --mock` if you want to preview the same pipeline without hardware.
+
 ---
 
 ## Demo
