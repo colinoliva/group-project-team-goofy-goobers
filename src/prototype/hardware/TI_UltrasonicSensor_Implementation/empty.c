@@ -148,12 +148,22 @@ int main(void)
     char line[48];
 
     SYSCFG_DL_init();
+    
+    // Explicitly ensure UART0 is initialized
+    SYSCFG_DL_UART_0_init();
+    
+    // Small delay to allow UART to stabilize
+    delay_ms(10);
 
     // Force trigger lines low at startup
     DL_GPIO_clearPins(S1_TRIG_PORT, S1_TRIG_PIN);
     DL_GPIO_clearPins(S2_TRIG_PORT, S2_TRIG_PIN);
     DL_GPIO_clearPins(S3_TRIG_PORT, S3_TRIG_PIN);
 
+    // Send test byte to verify UART is working
+    DL_UART_transmitDataBlocking(UART_0_INST, 'X');
+    delay_ms(1);
+    
     log_write_line("CORTEX_M0P: 3x HC-SR04 test starting...");
     log_write_line("CORTEX_M0P: S1 TRIG=PB4  ECHO=PB1");
     log_write_line("CORTEX_M0P: S2 TRIG=PB20 ECHO=PB13");
