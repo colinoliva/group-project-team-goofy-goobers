@@ -17,6 +17,8 @@ const GPIO4  = GPIO.addInstance();
 const GPIO5  = GPIO.addInstance();
 const GPIO6  = GPIO.addInstance();
 const SYSCTL = scripting.addModule("/ti/driverlib/SYSCTL");
+const UART   = scripting.addModule("/ti/driverlib/UART", {}, false);
+const UART1  = UART.addInstance();
 
 /**
  * Write custom configuration values to the imported modules.
@@ -63,6 +65,13 @@ GPIO6.associatedPins[0].direction           = "INPUT";
 
 SYSCTL.forceDefaultClkConfig = true;
 
+UART1.$name                    = "UART_0";
+UART1.targetBaudRate           = 115200;
+UART1.peripheral.rxPin.$assign = "PA11";
+UART1.peripheral.txPin.$assign = "PA10";
+UART1.txPinConfig.$name        = "ti_driverlib_gpio_GPIOPinGeneric0";
+UART1.rxPinConfig.$name        = "ti_driverlib_gpio_GPIOPinGeneric1";
+
 /**
  * Pinmux solution for unlocked pins/peripherals. This ensures that minor changes to the automatic solver in a future
  * version of the tool will not impact the pinmux you originally saw.  These lines can be completely deleted in order to
@@ -78,3 +87,4 @@ GPIO4.associatedPins[0].pin.$suggestSolution = "PB13";
 GPIO5.associatedPins[0].pin.$suggestSolution = "PB17";
 GPIO6.associatedPins[0].pin.$suggestSolution = "PB15";
 SYSCTL.peripheral.$suggestSolution           = "SYSCTL";
+UART1.peripheral.$suggestSolution            = "UART0";

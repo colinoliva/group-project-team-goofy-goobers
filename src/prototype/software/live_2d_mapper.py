@@ -31,7 +31,7 @@ SENSORS = {
 }
 
 LINE_PATTERN = re.compile(
-    r"^\s*(?P<sensor>S[123])\s*,\s*dist\s*=\s*(?P<distance>-?\d+(?:\.\d+)?)\s*$"
+    r"(?P<sensor>S[123])\s*,\s*dist\s*=\s*(?P<distance>-?\d+(?:\.\d+)?)"
 )
 
 COLORS = {
@@ -47,7 +47,7 @@ def parse_distance_line(line: str) -> Optional[Tuple[str, float]]:
     Returns None for malformed input so the caller can safely ignore noise.
     """
 
-    match = LINE_PATTERN.match(line)
+    match = LINE_PATTERN.search(line)
     if not match:
         return None
 

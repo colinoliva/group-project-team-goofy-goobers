@@ -16,6 +16,10 @@ class TestLive2DMapperHelpers(unittest.TestCase):
         parsed = parse_distance_line("S1,dist=13.2")
         self.assertEqual(parsed, ("S1", 13.2))
 
+    def test_parse_distance_line_accepts_ccs_prefixed_uart_format(self):
+        parsed = parse_distance_line("CORTEX_M0P: S2,dist=152.0")
+        self.assertEqual(parsed, ("S2", 152.0))
+
     def test_parse_distance_line_rejects_bad_input(self):
         self.assertIsNone(parse_distance_line("garbage"))
 

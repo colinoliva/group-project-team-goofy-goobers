@@ -2,9 +2,7 @@
 # Automatically-generated file. Do not edit!
 ################################################################################
 
-SHELL = cmd.exe
-
-CG_TOOL_ROOT := C:/ti/ccs2041/ccs/tools/compiler/ti-cgt-armllvm_4.0.4.LTS
+CG_TOOL_ROOT := /Applications/ti/ccs2041/ccs/tools/compiler/ti-cgt-armllvm_4.0.4.LTS
 
 GEN_OPTS__FLAG := @"./device.opt" 
 GEN_CMDS__FLAG := -Wl,-l"./device_linker.cmd" 
@@ -12,15 +10,15 @@ GEN_CMDS__FLAG := -Wl,-l"./device_linker.cmd"
 ORDERED_OBJS += \
 "./empty.o" \
 "./ti_msp_dl_config.o" \
-"./startup_mspm0g350x_ticlang.o" \
+"./startup_mspm0g351x_ticlang.o" \
 $(GEN_CMDS__FLAG) \
 -Wl,-ldevice.cmd.genlibs \
 -Wl,-llibc.a \
 
 -include ../makefile.init
 
-RM := DEL /F
-RMDIR := RMDIR /S/Q
+RM := rm -rf
+RMDIR := rm -rf
 
 # All of the sources participating in the build are defined here
 -include sources.mk
@@ -130,15 +128,15 @@ all: $(OBJS) $(GEN_CMDS)
 195SeniorProjectTest.out: $(OBJS) $(GEN_CMDS)
 	@echo 'Building target: "$@"'
 	@echo 'Invoking: Arm Linker'
-	"C:/ti/ccs2041/ccs/tools/compiler/ti-cgt-armllvm_4.0.4.LTS/bin/tiarmclang.exe" @"device.opt"  -march=thumbv6m -mcpu=cortex-m0plus -mfloat-abi=soft -mlittle-endian -mthumb -O2 -gdwarf-3 -Wl,-m"195SeniorProjectTest.map" -Wl,-i"C:/ti/mspm0_sdk_2_09_00_01/source" -Wl,-i"C:/Users/brand/workspace_ccstheia/195SeniorProjectTest" -Wl,-i"C:/Users/brand/workspace_ccstheia/195SeniorProjectTest/Debug/syscfg" -Wl,-i"C:/ti/ccs2041/ccs/tools/compiler/ti-cgt-armllvm_4.0.4.LTS/lib" -Wl,--diag_wrap=off -Wl,--display_error_number -Wl,--warn_sections -Wl,--xml_link_info="195SeniorProjectTest_linkInfo.xml" -Wl,--rom_model -o "195SeniorProjectTest.out" $(ORDERED_OBJS)
+	"/Applications/ti/ccs2041/ccs/tools/compiler/ti-cgt-armllvm_4.0.4.LTS/bin/tiarmclang" @"device.opt"  -march=thumbv6m -mcpu=cortex-m0plus -mfloat-abi=soft -mlittle-endian -mthumb -O2 -gdwarf-3 -Wl,-m"195SeniorProjectTest.map" -Wl,-i"/Applications/ti/mspm0_sdk_2_09_00_01/source" -Wl,-i"/Users/raghavgautam/Desktop/Github/group-project-team-goofy-goobers/src/prototype/hardware/TI_UltrasonicSensor_Implementation" -Wl,-i"/Users/raghavgautam/Desktop/Github/group-project-team-goofy-goobers/src/prototype/hardware/TI_UltrasonicSensor_Implementation/Debug/syscfg" -Wl,-i"/Applications/ti/ccs2041/ccs/tools/compiler/ti-cgt-armllvm_4.0.4.LTS/lib" -Wl,--diag_wrap=off -Wl,--display_error_number -Wl,--warn_sections -Wl,--xml_link_info="195SeniorProjectTest_linkInfo.xml" -Wl,--rom_model -o "195SeniorProjectTest.out" $(ORDERED_OBJS)
 	@echo 'Finished building target: "$@"'
 	@echo ' '
 
 # Other Targets
 clean:
 	-$(RM) $(GEN_MISC_FILES__QUOTED)$(GEN_FILES__QUOTED)$(EXE_OUTPUTS__QUOTED)
-	-$(RM) "empty.o" "ti_msp_dl_config.o" "startup_mspm0g350x_ticlang.o" 
-	-$(RM) "empty.d" "ti_msp_dl_config.d" "startup_mspm0g350x_ticlang.d" 
+	-$(RM) "empty.o" "ti_msp_dl_config.o" "startup_mspm0g351x_ticlang.o" 
+	-$(RM) "empty.d" "ti_msp_dl_config.d" "startup_mspm0g351x_ticlang.d" 
 	-@echo 'Finished clean'
 	-@echo ' '
 

@@ -136,6 +136,8 @@ int main(void)
     printf("CORTEX_M0P: Each ECHO must use its own voltage divider.\r\n");
 
     while (1) {
+        printf("CORTEX_M0P: sending sensor frame\r\n");
+
         ok1 = read_hcsr04_avg(S1_TRIG_PORT, S1_TRIG_PIN,
                               S1_ECHO_PORT, S1_ECHO_PIN, &d1);
         delay_ms(INTER_SENSOR_MS);
