@@ -48,6 +48,24 @@ static inline bool pin_is_high(GPIO_Regs *port, uint32_t pin)
     return (DL_GPIO_readPins(port, pin) & pin) != 0;
 }
 
+static void uart_write_char(char ch)
+{
+    DL_UART_transmitDataBlocking(UART_0_INST, (uint8_t)ch);
+}
+
+static void uart_write_string(const char *str)
+{
+    while (*str != '\0') {
+        uart_write_char(*str++);
+    }
+}
+
+static void uart_write_line(const char *line)
+{
+    uart_write_string(line);
+    uart_write_string("\r\n");
+}
+
 static bool read_hcsr04(GPIO_Regs *trig_port, uint32_t trig_pin,
                         GPIO_Regs *echo_port, uint32_t echo_pin,
                         float *distance_cm)
@@ -121,6 +139,7 @@ int main(void)
 {
     float d1, d2, d3;
     bool ok1, ok2, ok3;
+    char line[48];
 
     SYSCFG_DL_init();
 
@@ -129,14 +148,14 @@ int main(void)
     DL_GPIO_clearPins(S2_TRIG_PORT, S2_TRIG_PIN);
     DL_GPIO_clearPins(S3_TRIG_PORT, S3_TRIG_PIN);
 
-    printf("CORTEX_M0P: 3x HC-SR04 test starting...\r\n");
-    printf("CORTEX_M0P: S1 TRIG=PB4  ECHO=PB1\r\n");
-    printf("CORTEX_M0P: S2 TRIG=PB20 ECHO=PB13\r\n");
-    printf("CORTEX_M0P: S3 TRIG=PB17 ECHO=PB15\r\n");
-    printf("CORTEX_M0P: Each ECHO must use its own voltage divider.\r\n");
+    uart_write_line("CORTEX_M0P: 3x HC-SR04 test starting...");
+    uart_write_line("CORTEX_M0P: S1 TRIG=PB4  ECHO=PB1");
+    uart_write_line("CORTEX_M0P: S2 TRIG=PB20 ECHO=PB13");
+    uart_write_line("CORTEX_M0P: S3 TRIG=PB17 ECHO=PB15");
+    uart_write_line("CORTEX_M0P: Each ECHO must use its own voltage divider.");
 
     while (1) {
-        printf("CORTEX_M0P: sending sensor frame\r\n");
+        uart_write_line("CORTEX_M0P: sending sensor frame");
 
         ok1 = read_hcsr04_avg(S1_TRIG_PORT, S1_TRIG_PIN,
                               S1_ECHO_PORT, S1_ECHO_PIN, &d1);
@@ -151,24 +170,27 @@ int main(void)
         delay_ms(INTER_SENSOR_MS);
 
         if (ok1) {
-            printf("S1,dist=%.1f\r\n", d1);
+            snprintf(line, sizeof(line), "S1,dist=%.1f", d1);
+            uart_write_line(line);
         } else {
-            printf("S1,error=no_echo\r\n");
+            uart_write_line("S1,error=no_echo");
         }
 
         if (ok2) {
-            printf("S2,dist=%.1f\r\n", d2);
+            snprintf(line, sizeof(line), "S2,dist=%.1f", d2);
+            uart_write_line(line);
         } else {
-            printf("S2,error=no_echo\r\n");
+            uart_write_line("S2,error=no_echo");
         }
 
         if (ok3) {
-            printf("S3,dist=%.1f\r\n", d3);
+            snprintf(line, sizeof(line), "S3,dist=%.1f", d3);
+            uart_write_line(line);
         } else {
-            printf("S3,error=no_echo\r\n");
+            uart_write_line("S3,error=no_echo");
         }
 
-        printf("\r\n");
+        uart_write_line("");
         delay_ms(LOOP_DELAY_MS);
     }
 }
