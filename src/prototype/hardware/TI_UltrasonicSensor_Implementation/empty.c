@@ -66,6 +66,12 @@ static void uart_write_line(const char *line)
     uart_write_string("\r\n");
 }
 
+static void log_write_line(const char *line)
+{
+    printf("%s\r\n", line);
+    uart_write_line(line);
+}
+
 static bool read_hcsr04(GPIO_Regs *trig_port, uint32_t trig_pin,
                         GPIO_Regs *echo_port, uint32_t echo_pin,
                         float *distance_cm)
@@ -148,14 +154,14 @@ int main(void)
     DL_GPIO_clearPins(S2_TRIG_PORT, S2_TRIG_PIN);
     DL_GPIO_clearPins(S3_TRIG_PORT, S3_TRIG_PIN);
 
-    uart_write_line("CORTEX_M0P: 3x HC-SR04 test starting...");
-    uart_write_line("CORTEX_M0P: S1 TRIG=PB4  ECHO=PB1");
-    uart_write_line("CORTEX_M0P: S2 TRIG=PB20 ECHO=PB13");
-    uart_write_line("CORTEX_M0P: S3 TRIG=PB17 ECHO=PB15");
-    uart_write_line("CORTEX_M0P: Each ECHO must use its own voltage divider.");
+    log_write_line("CORTEX_M0P: 3x HC-SR04 test starting...");
+    log_write_line("CORTEX_M0P: S1 TRIG=PB4  ECHO=PB1");
+    log_write_line("CORTEX_M0P: S2 TRIG=PB20 ECHO=PB13");
+    log_write_line("CORTEX_M0P: S3 TRIG=PB17 ECHO=PB15");
+    log_write_line("CORTEX_M0P: Each ECHO must use its own voltage divider.");
 
     while (1) {
-        uart_write_line("CORTEX_M0P: sending sensor frame");
+        log_write_line("CORTEX_M0P: sending sensor frame");
 
         ok1 = read_hcsr04_avg(S1_TRIG_PORT, S1_TRIG_PIN,
                               S1_ECHO_PORT, S1_ECHO_PIN, &d1);
@@ -171,26 +177,26 @@ int main(void)
 
         if (ok1) {
             snprintf(line, sizeof(line), "S1,dist=%.1f", d1);
-            uart_write_line(line);
+            log_write_line(line);
         } else {
-            uart_write_line("S1,error=no_echo");
+            log_write_line("S1,error=no_echo");
         }
 
         if (ok2) {
             snprintf(line, sizeof(line), "S2,dist=%.1f", d2);
-            uart_write_line(line);
+            log_write_line(line);
         } else {
-            uart_write_line("S2,error=no_echo");
+            log_write_line("S2,error=no_echo");
         }
 
         if (ok3) {
             snprintf(line, sizeof(line), "S3,dist=%.1f", d3);
-            uart_write_line(line);
+            log_write_line(line);
         } else {
-            uart_write_line("S3,error=no_echo");
+            log_write_line("S3,error=no_echo");
         }
 
-        uart_write_line("");
+        log_write_line("");
         delay_ms(LOOP_DELAY_MS);
     }
 }
