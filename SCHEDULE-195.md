@@ -44,12 +44,10 @@
 | March 20th, 2026    | 30 minutes | Remote    | Paul, Raghav, Colin, Ernest | Meeting next week with TI, be sure to attend                                          | 0            |
 | March 25th, 2026    | 30 minutes | Remote    | Paul, Raghav, Colin, Ernest | Work on proof of concept without mmWave sensors for now                               | 1            |
 | April 10th, 2026    | 30 minutes | Remote    | Paul, Raghav, Colin, Ernest | Continue with POC and submit Report 2 ASAP                                            | 2            |
-|                     |            | In-person / Remote |                             |                                                                              |              |
-|                     |            | In-person / Remote |                             |                                                                              |              |
-|                     |            | In-person / Remote |                             |                                                                              |              |
-|                     |            | In-person / Remote |                             |                                                                              |              |
-|                     |            | In-person / Remote |                             |                                                                              |              |
-|                     |            | In-person / Remote |                             |                                                                              |              |
+| April 17th, 2026    | 30 minutes | Remote    | Paul, Raghav, Colin, Ernest | Finalizing POC documentation and README updates                              | 2            |
+| April 24th, 2026    | 30 minutes | In-person | Paul, Raghav, Colin, Ernest | Planning for TI mmWave sensor integration and UART communication              | 2            |
+| May 1st, 2026      | 30 minutes | Remote    | Paul, Raghav, Colin, Ernest | Discussing Open3D simulation and UART pipeline progress                       | 2            |
+| May 8th, 2026      | 30 minutes | In-person | Paul, Raghav, Colin, Ernest | Reviewing UART implementation and preparing for final presentation            | 2            |
 
 
 ---
@@ -199,12 +197,12 @@
 ## **Discussion:**
 
 - Making progress on raspberry pi work
-- Still no TI contact 
+- Still no TI contact
 
 ## **Decisions:**
 
 - Paul will email Professor Bhaskar to set up another advisor meeting
-- Colin and Paul will continue working on raspberry pi 
+- Colin and Paul will continue working on raspberry pi
 - If still no TI contact for many weeks, we can just run the project idea on our own without TI products
 
 **Action Items:**
@@ -268,24 +266,87 @@
 - Finish report
 
 **Action Items:**
-- Work on POC by report - Everyone - April 13th
+- Work on POC by report due date- Everyone - April 13th
 - Finish report - Everyone - April 13th
+
+---
+
+### April 17th, 2026 - Team Meeting
+
+**Attendees:** Paul, Raghav, Colin, Ernest
+
+**Discussion:**
+- Finalizing the Proof of Concept (POC)
+- Need to update the README with detailed hardware and software implementation instructions
+
+**Decisions:**
+- Complete all README updates
+
+**Action Items:**
+- Submit the repo link to the POC assignment - Everyone - April 17th
+- Finalize README documentation - Everyone - April 17th
 
 ---
 
 ## Meeting Notes
 
-### [Date] - [Advisor/Team] Meeting
+### April 24th, 2026 - Team Meeting
 
 **Attendees:** Paul, Raghav, Colin, Ernest
 
-## **Discussion:**
+**Discussion:**
+- Planning the transition to actual TI mmWave sensors for CMPE 195B
+- Discussing the UART communication pipeline between TI boards and Raspberry Pi
+- Researching TI firmware requirements
+- Need to submit report 3 which involves testing
 
-## **Decisions:**
+**Decisions:**
+- Start developing the UART communication protocol
+- Assign research tasks for TI mmWave sensor integration
 
 **Action Items:**
+- Submit report 3 - Everyone - April 27th
+- Design UART communication protocol - Everyone - May 1st
 
-- [Task] - [Owner] - [Due]
-- [Task] - [Owner] - [Due]
+---
+
+## Meeting Notes
+
+### May 1st, 2026 - Team Meeting
+
+**Attendees:** Paul, Raghav, Colin, Ernest
+
+**Discussion:**
+- Progress on the UART communication implementation
+- Testing Open3D for more complex 3D mapping visualizations
+- We have an in person presentation on May 8th
+
+**Decisions:**
+- Use Open3D as the primary visualization tool for high-fidelity 3D maps
+- Implement a simulation environment in Open3D to test mapping algorithms
+- Get ready for presentation on May 8th
+
+**Action Items:**
+- Develop Open3D mapping simulation - Paul Brandon Estigoy - May 8th
+- Finalize UART connection on Raspberry Pi - Raghav Gautam - May 8th
+
+---
+
+## Meeting Notes
+
+### May 8th, 2026 - Team Meeting
+
+**Attendees:** Paul, Raghav, Colin, Ernest
+
+**Discussion:**
+- Presentation is now an online recording
+- Preparing for the final presentation of CMPE 195A
+
+**Decisions:**
+- Finalize the presentation slides and live demo script
+- Practice and record the presentation as a team
+
+**Action Items:**
+- Complete presentation recroding - Everyone - May 11th
 
 ---
