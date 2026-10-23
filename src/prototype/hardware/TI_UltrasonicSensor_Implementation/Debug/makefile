@@ -130,7 +130,7 @@ all: $(OBJS) $(GEN_CMDS)
 195SeniorProjectTest.out: $(OBJS) $(GEN_CMDS)
 	@echo 'Building target: "$@"'
 	@echo 'Invoking: Arm Linker'
-	"C:/ti/ccs2041/ccs/tools/compiler/ti-cgt-armllvm_4.0.4.LTS/bin/tiarmclang.exe" @"device.opt"  -march=thumbv6m -mcpu=cortex-m0plus -mfloat-abi=soft -mlittle-endian -mthumb -O2 -gdwarf-3 -Wl,-m"195SeniorProjectTest.map" -Wl,-i"C:/ti/mspm0_sdk_2_09_00_01/source" -Wl,-i"C:/Users/brand/workspace_ccstheia/195SeniorProjectTest" -Wl,-i"C:/Users/brand/workspace_ccstheia/195SeniorProjectTest/Debug/syscfg" -Wl,-i"C:/ti/ccs2041/ccs/tools/compiler/ti-cgt-armllvm_4.0.4.LTS/lib" -Wl,--diag_wrap=off -Wl,--display_error_number -Wl,--warn_sections -Wl,--xml_link_info="195SeniorProjectTest_linkInfo.xml" -Wl,--rom_model -o "195SeniorProjectTest.out" $(ORDERED_OBJS)
+	"C:/ti/ccs2041/ccs/tools/compiler/ti-cgt-armllvm_4.0.4.LTS/bin/tiarmclang.exe" @"device.opt"  -march=thumbv6m -mcpu=cortex-m0plus -mfloat-abi=soft -mlittle-endian -mthumb -O2 -gdwarf-3 -Wl,-m"195SeniorProjectTest.map" -Wl,-i"C:/ti/mspm0_sdk_2_09_00_01/source" -Wl,-i"C:/Users/colin/OneDrive/Desktop/group-project-team-goofy-goobers/src/prototype/hardware/TI_UltrasonicSensor_Implementation" -Wl,-i"C:/Users/colin/OneDrive/Desktop/group-project-team-goofy-goobers/src/prototype/hardware/TI_UltrasonicSensor_Implementation/Debug/syscfg" -Wl,-i"C:/ti/ccs2041/ccs/tools/compiler/ti-cgt-armllvm_4.0.4.LTS/lib" -Wl,--diag_wrap=off -Wl,--display_error_number -Wl,--warn_sections -Wl,--xml_link_info="195SeniorProjectTest_linkInfo.xml" -Wl,--rom_model -o "195SeniorProjectTest.out" $(ORDERED_OBJS)
 	@echo 'Finished building target: "$@"'
 	@echo ' '
 
