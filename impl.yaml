@@ -10,7 +10,7 @@ setup:
   - "python -m venv .venv"
   - ".venv\\Scripts\\activate  # Windows"
   - "pip install --upgrade pip"
-  - "pip install numpy pyserial open3d"
+  - "pip install numpy pyserial open3d dash plotly"
 
 build:
   - "python -m compileall src/implementation"
@@ -22,11 +22,12 @@ run:
   - "python src\\implementation\\single_sensor_implementation.py --cli COM5 --data COM6 --cfg src\\implementation\\mapping.cfg --voxel 0.10 --min-hits 5 --height 1.0 --pitch 0.0"
 
 mock_mode:
-  available: false
-  commands: []
+  available: true
+  commands:
+    - "python src\\prototype\\software\\ti_sim.py"
 
 demo:
   video: ""
   screenshots: []
 
-notes: "This project requires a physical TI IWR6843AOP radar module connected over serial UART ports. The system cannot run fully without the hardware, so no mock execution path is provided in the current implementation."
+notes: "The live radar mapper requires a physical TI IWR6843AOP radar module connected over serial UART ports. To explore the prototype processing and visualization without hardware, run the mock simulator; it generates synthetic frames and displays filtering, DBSCAN clusters, bounding boxes, and point statistics in a browser."

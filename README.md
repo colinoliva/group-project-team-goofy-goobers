@@ -102,7 +102,7 @@ Useful key bindings in the viewer window:
 - `numpy`
 - `pyserial`
 - `open3d`
-- A TI IWR6843AOP sensor connected over serial UART ports
+- A TI IWR6843AOP sensor connected over serial UART ports for live hardware mode
 
 ### Installation
 
@@ -122,7 +122,7 @@ python -m venv .venv
 # source .venv/bin/activate
 
 pip install --upgrade pip
-pip install numpy pyserial open3d
+pip install numpy pyserial open3d dash plotly
 ```
 
 ### Running Locally
@@ -134,6 +134,22 @@ Example on Windows:
 ```bash
 python src\implementation\single_sensor_implementation.py --cli COM5 --data COM6 --cfg src\implementation\mapping.cfg --voxel 0.10 --min-hits 5 --height 1.0 --pitch 0.0
 ```
+
+### Mock Mode (No Radar Hardware)
+
+The prototype simulator generates synthetic radar frames and runs them through
+voxel downsampling, statistical outlier removal, DBSCAN clustering, and
+axis-aligned bounding-box rendering. It displays the live point cloud and frame
+statistics in a browser, so it can be used without connecting a radar:
+
+```bash
+python src\prototype\software\ti_sim.py
+```
+
+Open [http://localhost:8050](http://localhost:8050) while the simulator is
+running.
+
+### Hardware Mapper Options
 
 Common arguments:
 
@@ -159,7 +175,9 @@ Current active implementation:
   - `single_sensor_implementation.py` — real TI radar mapping application
   - `mapping.cfg` — TI radar configuration used at startup
 
-Legacy / prototype references remain in the repository for historical context, but the active implementation is now the single-sensor mmWave pipeline described above.
+The prototype simulator under `src/prototype/software/` provides a hardware-free
+mock/demo path; the active hardware implementation remains the single-sensor
+mmWave pipeline described above.
 
 ## Contributing
 
