@@ -27,7 +27,10 @@ mock_mode:
     - "python src\\prototype\\software\\ti_sim.py"
 
 demo:
-  video: ""
-  screenshots: []
+  video: "https://drive.google.com/drive/u/1/folders/1BuQGlUXtVkGyHvaYbINmNZ1HAqGcTPhS"
+  screenshots:
+    - "Screenshot 2026-10-25 182358.png"
+    - "Screenshot 2026-10-25 193928.png"
+    - "Screenshot 2026-10-25 200924.png"
 
 notes: "The live radar mapper requires a physical TI IWR6843AOP radar module connected over serial UART ports. To explore the prototype processing and visualization without hardware, run the mock simulator; it generates synthetic frames and displays filtering, DBSCAN clusters, bounding boxes, and point statistics in a browser."
