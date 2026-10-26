@@ -173,8 +173,8 @@ def floor_grid(half=5.0, step=1.0):
 # ----------------------------------------------------------------------------
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--cli", required=True, help="CLI port, e.g. COM5 (XDS110 Application/User UART)")
-    ap.add_argument("--data", required=True, help="Data port, e.g. COM6 (XDS110 Auxiliary Data Port)")
+    ap.add_argument("--cli", required=True, help="CLI port, e.g. COM5")
+    ap.add_argument("--data", required=True, help="Data port, e.g. COM6")
     ap.add_argument("--cfg", required=True)
     ap.add_argument("--voxel", type=float, default=0.10, help="voxel size in m")
     ap.add_argument("--min-hits", type=int, default=5, help="frames a voxel must be hit to display")
@@ -200,7 +200,7 @@ def main():
     state = {"paused": False, "reset": False, "save": False}
 
     vis = o3d.visualization.VisualizerWithKeyCallback()
-    vis.create_window("IWR6843AOP map  [R reset | S save | P pause]", 1280, 800)
+    vis.create_window("IWR6843AOP map  [F fit all | R reset | S save | P pause]", 1280, 800)
     opt = vis.get_render_option()
     opt.point_size = 5.0
     opt.background_color = np.array([0.04, 0.04, 0.07])
@@ -212,6 +212,16 @@ def main():
     axes.translate((0, 0, args.height))
     for g in (floor_grid(), axes, map_pcd, live_pcd):
         vis.add_geometry(g)
+
+    def on_fit_all(_):
+        m = vmap.occupied(args.min_hits)
+        if len(m):
+            map_pcd.points = o3d.utility.Vector3dVector(m)
+            map_pcd.colors = o3d.utility.Vector3dVector(height_colors(m))
+        vis.update_geometry(map_pcd)
+        vis.update_geometry(live_pcd)
+        vis.reset_view_point(True)
+        return False
 
     def on_reset(_):
         state["reset"] = True
@@ -226,6 +236,7 @@ def main():
         print("Accumulation", "PAUSED" if state["paused"] else "resumed")
         return False
 
+    vis.register_key_callback(ord("F"), on_fit_all)
     vis.register_key_callback(ord("R"), on_reset)
     vis.register_key_callback(ord("S"), on_save)
     vis.register_key_callback(ord("P"), on_pause)

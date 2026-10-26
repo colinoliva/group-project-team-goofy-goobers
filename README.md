@@ -1,6 +1,6 @@
 # Texas Instruments mmWave Radar Sensor
 
-Texas Instruments Raspberry Pi mmWave Radar Sensor
+Single-sensor 3D occupancy mapping using the TI IWR6843AOP radar platform.
 
 ## Team
 
@@ -17,94 +17,79 @@ Texas Instruments Raspberry Pi mmWave Radar Sensor
 
 ## Problem Statement
 
-Achieving reliable and affordable 3D environment mapping remains a significant hurdle for DIY developers, robotics teams, and small businesses. While industrial-grade LiDAR offers high precision, its prohibitive cost limits its accessibility. Conversely, low-cost radar sensors frequently suffer from signal noise and false positives when operated as standalone units, leading to untrustworthy spatial data in consumer applications like surveillance and monitoring. The core technical challenge lies in the inherent limitations of single-sensor deployments; however, by synchronizing multiple sensors in a unified array, it is possible to mitigate noise and achieve high-fidelity 3D mapping that rivals expensive industrial systems at a fraction of the cost.
+Affordable 3D environment mapping is difficult to achieve with low-cost sensing hardware. Commercial LiDAR systems provide high spatial fidelity, but they are expensive and often impractical for embedded or consumer-oriented deployments. A single low-cost radar sensor can provide range and Doppler information in a compact form factor, but the raw data must be filtered and accumulated carefully to produce a reliable static occupancy map rather than a noisy point cloud.
 
 ## Solution
 
-Our solution leverages an array of synchronized Texas Instruments mmWave radar sensors interfaced with a Raspberry Pi to provide high-precision 3D mapping at a consumer-friendly price point. By implementing an edge-based processing pipeline, the system utilizes advanced spatial algorithms—including DBSCAN clustering, trilateration, and voxel downsampling—to aggregate data from multiple vantage points and filter out signal noise. This synchronized multi-sensor approach drastically reduces false positives and provides a robust, real-time 3D visualization, offering a reliable alternative to expensive industrial LiDAR systems.
+This project implements a live static 3D occupancy mapping pipeline using a Texas Instruments IWR6843AOP radar sensor. The radar streams point cloud data over its UART data port, the Python application parses the TI frame format, filters points by range, Doppler, and SNR, and accumulates only static detections into a voxel map. The result is rendered in real time in Open3D, with the ability to reset, pause, save the map, and record the raw frames for later analysis.
 
 ### Key Features
 
 #### Hardware Implementation
 
-System utilzies a TI MSPM0g3507 Microcontroller to interface three HC-SR04 ultrasonic sensors and to simulate a multi sensor embedded pipeline.
+The active system uses the TI IWR6843AOP radar evaluation module connected over the host's serial UART interfaces. The CLI port is used to send the radar configuration, and the data port receives the point-cloud frames produced by the sensor.
 
 Current setup includes:
 
-- 1x TI MSPM0G3507 LaunchPad
-- 3x HC-SR04 Ultrasonic Sensors
-- Resistors (1k and 2k for voltage dividers)
-- Breadboard + jumper wires
+- 1x TI IWR6843AOP mmWave radar sensor
+- USB serial connection to the host computer or Raspberry Pi
+- `src/implementation/mapping.cfg` radar profile generated for the TI sensor
 
-Each sensor is connected to the microcontroller and used GPIO pins for both the TRIG (output signal) & ECHO (input signal)
+The radar is configured through the CLI port with commands ending in `sensorStart`, while the resulting point cloud frames are read from the data port. The implementation expects the radar frame format described by TI's demo output, including point data and optional side information such as SNR values.
 
-Since the ECHO pin outputs 5 volts a voltage divider needs to be used to step it down to 3.3v to safely connect to the microcontroller.
+The application treats the sensor frame as:
 
-(SEE src/hardware/Schematics FOR BREADBOARD AND RESISTOR IMPLEMENTATION)
-![alt text](image.png)
+- x = right
+- y = forward
+- z = up
 
-How the Sensor Operation works:
+The world frame is aligned to the same axes, with the origin placed on the floor directly below the sensor. The sensor height and pitch can be adjusted with command-line arguments to match the physical setup.
 
-1. MCU sends a short pulse to the TRIG pin.
-2. Sensor emits an ultrasonic signal.
-3. When the echo returns, the ECHO pins goes HIGH.
-4. The duration of the HIGH signal calculates the distance.
+#### Software Implementation
 
-Multi-Sensor Design:
+The active software is located in:
 
-- Each sensor uses unique GPIO pins
-- Sensors are triggered one at a time
-- Small Delay is added between readings to avoid interference.
+- `src/implementation/single_sensor_implementation.py` — live radar parsing and occupancy mapping
+- `src/implementation/mapping.cfg` — TI radar configuration file
 
-Purpose is to simulate an end to end pipe line. Hardware Implementation works on the Sensor, Embedded, and Communication layers.
+The Python application:
 
-UART OUTPUT:
-After computing the distances, MCU sends formatted data over serial:
+- Opens the CLI and data serial ports
+- Sends the radar configuration file over the CLI port
+- Reads TI frames from the data stream
+- Filters by minimum range, maximum range, SNR threshold, and Doppler threshold
+- Only counts static points in the map accumulation process
+- Renders the live scene and accumulated static map with Open3D
+- Supports hotkeys for fit-all, reset, save, and pause/resume
 
-S1,dist=13.2
-S2,dist=25.7
-S3,dist=42.1
+Useful key bindings in the viewer window:
 
-This allows real time monitoring for the system.
-
-Current Status
-While we wait for the TI mmWave sensors, this system will act as a mock version of validating:
-
-- Multi Sensor coordination
-- Embedded Data Processing
-- Serial Communication Pipeline
-  This ensures a strong foundation for when we integrate with the final sensors.
-
-#### Software Implementation with Mock TI Data
-
-- A separate python script uses mock data to simulate a 3D environment that the TI IWR6843AOPEVM mmWave radar sensors would produce in theory.
-- ![alt text](Architecture-Diagram.png)
+- `F` — fit all
+- `R` — reset the map
+- `S` — save the current map to a `.ply` file
+- `P` — pause/resume accumulation
 
 ---
 
 ## Demo
 
-**Mock Data Demo:** https://drive.google.com/file/d/1wVJb_W66xzq6F7lCRgQK-DBDRxVU7pMl/view?usp=sharing
+
 
 ---
 
 ## Screenshots
 
-| Feature                            | Screenshot                               |
-| ---------------------------------- | ---------------------------------------- |
-| Software Mock Data 3D Mapping      | ![alt text](Mock-Simulation.png)         |
-| 3 Ultrasonic Sensor Implementation | ![alt text](Ultrasonic-Sensor-Setup.png) |
 
 ---
 
 ## Tech Stack
 
-| Category | Technology                                                             |
-| -------- | ---------------------------------------------------------------------- |
-| Frontend | Dash                                                                   |
-| Backend  | C, Python (Open3D, Plotly, NumPy)                                      |
-| Database | Local Storage on Raspberry Pi 4                                        |
-| Hardware | TI LaunchPad LP-MSPM0G3507, HC-SR04 Ultrasonic Sensors, Raspberry Pi 4 |
+| Category | Technology |
+| -------- | ---------- |
+| Frontend / Visualization | Open3D |
+| Backend / Processing | Python, NumPy, pySerial |
+| Hardware | TI IWR6843AOP mmWave radar, serial UART interface |
+| Data Recording | `.npz` raw frame capture, `.ply` saved map exports |
 
 ---
 
@@ -112,74 +97,69 @@ While we wait for the TI mmWave sensors, this system will act as a mock version 
 
 ### Prerequisites
 
-- Python 3.8+ (3.10 recommended)
-- `pip` (or a Python package manager such as `pipx`/`pipenv`)
-- Optional: `virtualenv` / `venv` to create an isolated environment
-- For the full processing pipeline (`ti_sim.py`): `open3d` and its native dependencies (may require additional build tools)
-- For low-resource devices (Raspberry Pi) use `simple_ti_sim.py` which avoids `open3d`
+- Python 3.9+ (3.10/3.11 recommended)
+- `pip` or another Python package manager
+- `numpy`
+- `pyserial`
+- `open3d`
+- A TI IWR6843AOP sensor connected over serial UART ports
 
 ### Installation
 
 ```bash
 # Clone the repository
 git clone https://github.com/SJSU-CMPE-195/group-project-team-goofy-goobers.git
-cd [repo]
+cd group-project-team-goofy-goobers
 ```
 
-### Install dependencies
-
-1. Change into the prototype software folder:
+Install the required Python dependencies:
 
 ```bash
-cd src/prototype/software
-```
+python -m venv .venv
+# Windows
+.venv\Scripts\activate
+# macOS / Linux
+# source .venv/bin/activate
 
-2. Install dependencies:
-
-```bash
-# Install everything listed in the repo requirements (if present)
 pip install --upgrade pip
-pip install -r requirements.txt
-
-# Or install the minimal set for the lightweight demo
-pip install numpy dash plotly
-
-# If you plan to run the full Open3D pipeline:
-pip install open3d
+pip install numpy pyserial open3d
 ```
 
 ### Running Locally
 
-Run the lightweight simulator (recommended for quick checks or Raspberry Pi):
+The active implementation requires both the radar CLI port and the data port. The exact COM names or device paths depend on the host machine and USB configuration.
+
+Example on Windows:
 
 ```bash
-cd src/prototype/software
-python simple_ti_sim.py
+python src\implementation\single_sensor_implementation.py --cli COM5 --data COM6 --cfg src\implementation\mapping.cfg --voxel 0.10 --min-hits 5 --height 1.0 --pitch 0.0
 ```
 
-Run the full processing pipeline (requires `open3d`):
+Common arguments:
 
-```bash
-cd src/prototype/software
-python ti_sim.py
-```
+- `--cli` — UART CLI port used to send the radar configuration
+- `--data` — data port used to receive mmWave frame packets
+- `--cfg` — TI configuration file, such as `src/implementation/mapping.cfg`
+- `--voxel` — voxel size used for occupancy accumulation (default `0.10` m)
+- `--min-hits` — minimum hits per voxel before being displayed
+- `--vthresh` — Doppler threshold for static filtering
+- `--min-range` / `--max-range` — range limits in meters
+- `--min-snr` — minimum SNR required to keep a point
+- `--height` — sensor mounting height above floor in meters
+- `--pitch` — sensor tilt in degrees (positive values tilt the sensor down)
+- `--no-record` — disable saving raw frame data to disk
 
-Both scripts start a Dash app listening on `http://localhost:8050` by default. Open that URL in your browser (or use `http://<device-ip>:8050` from another device on the same network).
+To stop the app, close the Open3D window or terminate the Python process. The script automatically sends `sensorStop` before shutdown.
 
 ## Project Structure
 
-Relevant prototype layout:
+Current active implementation:
 
-- `src/prototype/`
-  - `hardware/` — hardware notes, schematics and TI microcontroller examples ([src/prototype/hardware/HARDWARE.md](src/prototype/hardware/HARDWARE.md#L1))
-  - `software/` — simulation and visualization scripts
-    - `mapping_mock_data.py` — trilateration / ultrasonic mock data and small plotting helper ([src/prototype/software/mapping_mock_data.py](src/prototype/software/mapping_mock_data.py#L1))
-    - `simple_ti_sim.py` — lightweight Dash + Plotly 3D mock simulator (recommended)
-    - `ti_sim.py` — full Open3D processing pipeline + Dash visualization (heavier dependencies)
+- `src/implementation/`
+  - `single_sensor_implementation.py` — real TI radar mapping application
+  - `mapping.cfg` — TI radar configuration used at startup
 
-- `tests/` — unit tests for the prototype code (for example, [tests/test_mapping_mock_data.py](tests/test_mapping_mock_data.py#L1))
-
-## Use `src/prototype/software` as the working directory when running the prototype demos.
+Legacy / prototype references remain in the repository for historical context, but the active implementation is now the single-sensor mmWave pipeline described above.
 
 ## Contributing
 
@@ -188,34 +168,14 @@ Relevant prototype layout:
 3. Push to the branch (`git push origin feature/amazing-feature`)
 4. Open a Pull Request
 
-### Branch Naming
 
-- `feature/` - New features
-- `fix/` - Bug fixes
-- `docs/` - Documentation updates
-- `refactor/` - Code refactoring
+## What's Next
 
-### Commit Messages
+- Validate the live sensor setup on the physical TI IWR6843AOP hardware.
+- Tune the radar configuration and filtering thresholds for the target environment.
+- Extend the current single-sensor mapping logic toward a synchronized 3 sensor configuration when needed.
+- Continue refining the occupancy map for robust 3D scene reconstruction in real-world conditions.
 
-Use clear, descriptive commit messages:
-
-- `Add user authentication endpoint`
-- `Fix database connection timeout issue`
-- `Update README with setup instructions`
-
----
-
-## What's Next (195B)
-- Obtain IWR6843AOPEVM mmWave sensors to implement actual 3D mapping data.
-- Implement sensors with existing hardware and software from this semesters PoC.
-- Implement IWR6843AOPEVM data to be sent from the TI boards to the Raspberry Pi 4 for DBSCAN cluster calculations, which will then be sent to a personal computer for displaying of 3D mapping.
-- Be able to provide an affordable option for 3D Mapping to possibly compete with industry grade sensors.
-
-<!-- ## License
-
-This project is licensed under the <FILL IN> License - see the [LICENSE](LICENSE) file for details.
-
---- -->
 ---
 
 _CMPE 195A/B - Senior Design Project | San Jose State University | Spring 2026_

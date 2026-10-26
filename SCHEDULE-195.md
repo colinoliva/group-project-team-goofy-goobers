@@ -44,7 +44,7 @@
 | March 20th, 2026    | 30 minutes | Remote    | Paul, Raghav, Colin, Ernest | Meeting next week with TI, be sure to attend                                          | 0            |
 | March 25th, 2026    | 30 minutes | Remote    | Paul, Raghav, Colin, Ernest | Work on proof of concept without mmWave sensors for now                               | 1            |
 | April 10th, 2026    | 30 minutes | Remote    | Paul, Raghav, Colin, Ernest | Continue with POC and submit Report 2 ASAP                                            | 2            |
-|                     |            | In-person / Remote |                             |                                                                              |              |
+| October 19th, 2026 | 30 minutes |  Remote | Paul, Raghav, Colin, Ernest | Planned out roles for developing the final product since we had recently received all necessary materials. | 1 |
 |                     |            | In-person / Remote |                             |                                                                              |              |
 |                     |            | In-person / Remote |                             |                                                                              |              |
 |                     |            | In-person / Remote |                             |                                                                              |              |
@@ -270,6 +270,29 @@
 **Action Items:**
 - Work on POC by report - Everyone - April 13th
 - Finish report - Everyone - April 13th
+
+---
+
+## Meeting Notes
+
+### October 19th, 2026 - Team Meeting
+
+**Attendees:** Paul, Raghav, Colin, Ernest
+
+## **Discussion:**
+- Decided on dividing up tasks: Debugging mmWave Sensors (Brandon and Colin), Machine Learning implementation (Raghav), Interactive Environment (Ernest), QA (Raghav)
+- **Debugging mmWave Sensors:** Use MMWAVEICBOOST board to debug and program sensors to process collected data on the sensors’ chips themselves, then use that data to display into a 3D map.
+- **Machine Learning:** Once 3D mapping implementation is complete, train the device to recognize humans.
+- **Interactive Environment:** Implement 3D mapping software used so that the mapped environment could have more interactive features, such as: One feature could be locking onto one person like a “spectating mode” and toggle to different people in the area and also count how many people are in the mapped area, maybe have a log of how many people entered for a sort of security aspect.
+
+
+## **Decisions:**
+- Decided on who will have what task in order to help divide work.
+- Focused on mmWave implemetnation first to provide a product for the second implementation.
+
+**Action Items:**
+
+- Implementation 2: 3D Mapping with 1 Sensor - Owner: Colin & Brandon - Due: October 25, 2026
 
 ---
 

@@ -1,0 +1,32 @@
+project_name: "TI mmWave Radar Occupancy Mapper"
+project_type: "iot"
+
+impl_claim: "A TI IWR6843AOP radar sensor streams point-cloud frames over serial, and the Python application filters static detections into a live 3D occupancy map in Open3D within seconds of startup."
+
+languages: ["python"]
+hardware_required: true
+
+setup:
+  - "python -m venv .venv"
+  - ".venv\\Scripts\\activate  # Windows"
+  - "pip install --upgrade pip"
+  - "pip install numpy pyserial open3d"
+
+build:
+  - "python -m compileall src/implementation"
+
+test:
+  - "pytest -q  # no dedicated radar hardware tests are included in this repo"
+
+run:
+  - "python src\\implementation\\single_sensor_implementation.py --cli COM5 --data COM6 --cfg src\\implementation\\mapping.cfg --voxel 0.10 --min-hits 5 --height 1.0 --pitch 0.0"
+
+mock_mode:
+  available: false
+  commands: []
+
+demo:
+  video: ""
+  screenshots: []
+
+notes: "This project requires a physical TI IWR6843AOP radar module connected over serial UART ports. The system cannot run fully without the hardware, so no mock execution path is provided in the current implementation."
