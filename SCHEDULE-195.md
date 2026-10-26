@@ -296,7 +296,6 @@
 
 ## Meeting Notes
 
-<<<<<<< HEAD
 ### October 19th, 2026 - Team Meeting
 
 **Attendees:** Paul, Raghav, Colin, Ernest
@@ -321,9 +320,7 @@
 ## Meeting Notes
 
 ### [Date] - [Advisor/Team] Meeting
-=======
 ### April 24th, 2026 - Team Meeting
->>>>>>> origin/main
 
 **Attendees:** Paul, Raghav, Colin, Ernest
 
