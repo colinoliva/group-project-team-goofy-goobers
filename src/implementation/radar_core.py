@@ -314,3 +314,42 @@ def fov_lines(T, r=4.0, half_az=60.0, half_el=60.0):
     pts = apply_T(T, np.vstack([[0, 0, 0], *corners]))
     lines = np.array([[0, 1], [0, 2], [0, 3], [0, 4], [1, 2], [2, 3], [3, 4], [4, 1]], np.int32)
     return pts, lines
+
+# ----------------------------------------------------------------------------
+# Sensor scheduling that is shared by the Open3D mapper and the web viewer
+# ----------------------------------------------------------------------------
+class Scheduler(threading.Thread):
+    """Starts/stops sensors from a background thread so a viewer never freezes.
+ 
+    default  : time-division - one sensor transmits at a time, each for `slot` seconds
+    freerun  : every sensor runs continuously (10 Hz each, but they may interfere)
+    1 sensor : just runs continuously
+    """
+ 
+    def __init__(self, links, slot=3.0, gap=0.3, freerun=False):
+        super().__init__(daemon=True)
+        self.links, self.slot, self.gap, self.freerun = links, slot, gap, freerun
+        self.halt = threading.Event()
+        self.active = None
+        self.error = None
+ 
+    def run(self):
+        try:
+            if self.freerun or len(self.links) == 1:
+                for link in self.links:
+                    link.start()
+                self.active = 0 if len(self.links) == 1 else None
+                self.halt.wait()
+                return
+            while not self.halt.is_set():
+                for i, link in enumerate(self.links):
+                    if self.halt.is_set():
+                        break
+                    link.start()
+                    self.active = i
+                    self.halt.wait(self.slot)
+                    link.stop()
+                    self.active = None
+                    self.halt.wait(self.gap)
+        except Exception as e:
+            self.error = e

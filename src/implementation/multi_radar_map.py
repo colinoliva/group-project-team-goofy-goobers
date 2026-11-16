@@ -23,37 +23,6 @@ from radar_core import (PALETTE, RadarLink, MultiVoxelMap, apply_T, filter_point
                         grid_lines, height_colors, list_ports, load_sensors)
 
 
-class Scheduler(threading.Thread):
-    """Runs sensors one at a time. Lives in its own thread so the viewer never freezes."""
-
-    def __init__(self, links, slot, gap):
-        super().__init__(daemon=True)
-        self.links, self.slot, self.gap = links, slot, gap
-        self.halt = threading.Event()
-        self.active = None
-        self.error = None
-
-    def run(self):
-        try:
-            if len(self.links) == 1:               # nothing to take turns with
-                self.links[0].start()
-                self.active = 0
-                self.halt.wait()
-                return
-            while not self.halt.is_set():
-                for i, link in enumerate(self.links):
-                    if self.halt.is_set():
-                        break
-                    link.start()
-                    self.active = i
-                    self.halt.wait(self.slot)
-                    link.stop()
-                    self.active = None
-                    self.halt.wait(self.gap)
-        except Exception as e:                      # reported by the main loop
-            self.error = e
-
-
 def lineset(pts, lines, color):
     ls = o3d.geometry.LineSet(points=o3d.utility.Vector3dVector(pts),
                               lines=o3d.utility.Vector2iVector(lines))
@@ -68,6 +37,8 @@ def main():
     ap.add_argument("--only", nargs="+", help="run only these sensor names, e.g. --only S1")
     ap.add_argument("--slot", type=float, default=3.0, help="seconds each sensor runs per turn")
     ap.add_argument("--gap", type=float, default=0.3, help="idle seconds between turns")
+    ap.add_argument("--freerun", action="store_true",
+                    help="run all sensors continuously (no time-division) to test interference")
     ap.add_argument("--voxel", type=float, default=0.10)
     ap.add_argument("--min-hits", type=int, default=6, help="total hits (all sensors) to show a voxel")
     ap.add_argument("--min-sensors", type=int, default=1,
