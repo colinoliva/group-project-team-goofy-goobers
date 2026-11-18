@@ -19,7 +19,7 @@ import time
 import numpy as np
 import open3d as o3d
 
-from radar_core import (PALETTE, RadarLink, MultiVoxelMap, apply_T, filter_points, fov_lines,
+from radar_core import (PALETTE, RadarLink, MultiVoxelMap, Scheduler, apply_T, filter_points, fov_lines,
                         grid_lines, height_colors, list_ports, load_sensors)
 
 
@@ -140,7 +140,7 @@ def main():
                 return palette[owner] * 0.85
             return height_colors(pts)
 
-        sched = Scheduler(links, args.slot, args.gap)
+        sched = Scheduler(links, slot=args.slot, gap=args.gap, freerun=args.freerun)
         sched.start()
 
         recorded = []
