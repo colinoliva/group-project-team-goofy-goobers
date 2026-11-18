@@ -26,6 +26,8 @@ import plotly.graph_objects as go
 from dash import Dash, Input, Output, Patch, State, dcc, html, no_update
 
 from radar_core import PALETTE, apply_T, filter_points, fov_lines, grid_lines, pose_to_T
+from features import extract_features, to_vector
+from rule_baseline import is_human_rule
 from tracking import Background, Tracker, cluster, detections
 
 TRACK_COLORS = ["#00d4ff", "#ff6b35", "#a855f7", "#44cf6c", "#f59e0b", "#ef4444"]
@@ -69,16 +71,19 @@ class MockSource:
         t, r = time.time(), self.rng
         people = [(1.5 * np.sin(0.30 * t), 1.2 * np.cos(0.22 * t) + 0.8),
                   (-1.2 + 0.7 * np.cos(0.6 * t), 1.5 + 0.9 * np.sin(0.45 * t))]
-        xyz, vel = [], []
+        xyz, vel, snr = [], [], []
         for cx, cy in people:
             xyz.append(r.normal(size=(45, 3)) * [0.12, 0.12, 0.30] + [cx, cy, 1.0])
             vel.append(r.normal(0.6, 0.3, 45))
+            snr.append(r.normal(18, 4, 45))
         xyz.append(self.static[r.integers(0, len(self.static), 60)] + r.normal(0, 0.03, (60, 3)))
         vel.append(np.zeros(60))
+        snr.append(r.normal(12, 3, 60))
         xyz.append(r.uniform([-3, -2.5, 0], [3, 3.5, 2.5], (6, 3)))
         vel.append(r.normal(0, 0.05, 6))
-        xyz, vel = np.vstack(xyz), np.concatenate(vel)
-        return {"xyz": xyz, "vel": vel, "sid": r.integers(0, 3, len(xyz))}
+        snr.append(np.full(6, np.nan))
+        xyz, vel, snr = np.vstack(xyz), np.concatenate(vel), np.concatenate(snr)
+        return {"xyz": xyz, "vel": vel, "snr": snr, "sid": r.integers(0, 3, len(xyz))}
 
 
 class LiveSource:
@@ -100,7 +105,8 @@ class LiveSource:
                       else f"LIVE {sensors[0]['name']}")
 
     def next_frame(self):
-        xyz, vel, sid = [np.empty((0, 3))], [np.empty(0)], [np.empty(0, int)]
+        xyz, vel, snr, sid = ([np.empty((0, 3))], [np.empty(0)], [np.empty(0)],
+                              [np.empty(0, int)])
         for i, link in enumerate(self.links):
             for fr in link.drain():
                 pts = fr["pts"]
@@ -109,8 +115,13 @@ class LiveSource:
                 p, keep = filter_points(pts, fr["snr"], 0.3, 9.0, 0.0)
                 xyz.append(apply_T(self.sensors[i]["T"], p[keep]))
                 vel.append(pts[keep, 3].astype(float))
+                if fr["snr"] is None:
+                    snr.append(np.full(int(keep.sum()), np.nan))
+                else:
+                    snr.append(np.asarray(fr["snr"], dtype=float)[keep])
                 sid.append(np.full(int(keep.sum()), i))
-        return {"xyz": np.vstack(xyz), "vel": np.concatenate(vel), "sid": np.concatenate(sid)}
+        return {"xyz": np.vstack(xyz), "vel": np.concatenate(vel),
+                "snr": np.concatenate(snr), "sid": np.concatenate(sid)}
 
     def close(self):
         self.sched.halt.set()
@@ -123,10 +134,19 @@ class LiveSource:
 # Processing thread (acquire -> foreground -> cluster -> track), ~10 Hz
 # ---------------------------------------------------------------------------
 class Engine(threading.Thread):
-    def __init__(self, source, learn_s, eps, v_move):
+    def __init__(self, source, learn_s, eps, v_move, classify=True, model_path=None):
         super().__init__(daemon=True)
         self.src, self.learn_s, self.eps, self.v_move = source, learn_s, eps, v_move
+        self.classify, self.model = classify, None
+        if classify and model_path:
+            from xgboost import XGBClassifier
+            self.model = XGBClassifier()
+            self.model.load_model(model_path)
         self.bg, self.tracker = Background(), Tracker()
+        if hasattr(source, "sensors"):
+            self.sensor_pos = np.asarray([sensor["T"][:3, 3] for sensor in source.sensors])
+        else:
+            self.sensor_pos = None
         self.lock, self.halt = threading.Lock(), threading.Event()
         self.t_learn = time.time()
         self.state = {"xyz": np.empty((0, 3)), "sid": np.empty(0, int), "fg": 0, "dets": [],
@@ -146,7 +166,7 @@ class Engine(threading.Thread):
         while not self.halt.is_set():
             t0 = time.time()
             fr = self.src.next_frame()
-            xyz, vel, sid = fr["xyz"], fr["vel"], fr["sid"]
+            xyz, vel, snr, sid = fr["xyz"], fr["vel"], fr["snr"], fr["sid"]
             learning = not self.bg.frozen
             dets, assign, tracks, n_fg = [], {}, [], 0
             if learning:
@@ -161,6 +181,27 @@ class Engine(threading.Thread):
                 dets = detections(xyz[idx], lab)
                 for d in dets:
                     d["idx"] = idx[d["idx"]]
+                if self.classify:
+                    keep = []
+                    for d in dets:
+                        cl_xyz = xyz[d["idx"]]
+                        cl_vel = vel[d["idx"]]
+                        cl_snr = snr[d["idx"]]
+                        features = extract_features(cl_xyz, cl_vel, cl_snr, self.sensor_pos)
+                        if self.model is None:
+                            human = is_human_rule(features)
+                            probability = 1.0 if human else 0.0
+                        else:
+                            probability = float(self.model.predict_proba(
+                                to_vector(features).reshape(1, -1))[0, 1])
+                            human = probability >= 0.5
+                        d["human_probability"] = probability
+                        if human:
+                            keep.append(d)
+                    dets = keep
+                else:
+                    for d in dets:
+                        d["human_probability"] = 1.0
                 tracks, assign = self.tracker.update(dets, t0)
             snap = [{"id": tr.id, "pos": tr.pos.copy(), "trail": np.array(tr.trail)} for tr in tracks]
             with self.lock:
@@ -249,10 +290,13 @@ def main():
     ap.add_argument("--vmove", type=float, default=0.1, help="|Doppler| above this counts as moving, m/s")
     ap.add_argument("--extent", type=float, default=4.0, help="half-width of the plotted area, m")
     ap.add_argument("--port", type=int, default=8050)
+    ap.add_argument("--model", metavar="MODEL_JSON", help="XGBoost model file")
+    ap.add_argument("--no-classify", action="store_true", help="keep all detections")
     args = ap.parse_args()
 
     source = LiveSource(args.live, args.only, args.freerun, args.slot) if args.live else MockSource()
-    engine = Engine(source, args.learn, args.eps, args.vmove)
+    engine = Engine(source, args.learn, args.eps, args.vmove,
+                    classify=not args.no_classify, model_path=args.model)
     engine.start()
     ui = {"mode": "free", "ids": ()}
     E = args.extent

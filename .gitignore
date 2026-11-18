@@ -166,3 +166,6 @@ requirements.txt
 # ===========================
 # Add project-specific ignores below
 .envs
+model.json
+feature_names.json
+datasets/
