@@ -172,6 +172,7 @@ model.json
 feature_names.json
 datasets/
 data/
+sensors.mac.json
 
 
 
