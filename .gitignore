@@ -25,7 +25,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 venv/
-.venv/
+.venv*/
 env/
 .Python
 pip-log.txt
@@ -156,7 +156,6 @@ docker-data/
 .serverless/
 *.bak
 *.backup
-requirements.txt
 
 .vscode 
 
@@ -166,7 +165,11 @@ requirements.txt
 # ===========================
 # Add project-specific ignores below
 check_*.npz
-.envs
+frames*.npz
+map*.ply
+data/
 model.json
 feature_names.json
-datasets/
+datasets/frames*.npz
+map*.ply
+data/
