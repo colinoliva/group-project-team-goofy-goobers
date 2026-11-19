@@ -5,6 +5,7 @@ import argparse
 import re
 import sys
 import time
+import traceback
 from datetime import datetime, timezone
 
 import numpy as np
@@ -44,34 +45,43 @@ def phase_stats(frames):
     """Compute frame, range, SNR, and point statistics for a phase."""
     if not frames:
         return {"frames": 0, "fps": 0.0, "mean": 0.0, "max": 0.0,
-                "snr_fraction": 0.0, "snr_median": np.nan}
+                "snr_fraction": 0.0, "snr_median": np.nan, "snr_mismatch": 0,
+                "elapsed": 0.0}
     counts = []
     snr_values = []
-    timestamps = []
+    snr_mismatch = 0
+    elapsed = 0.0
     for frame in frames:
-        pts, _ = range_points(frame)
-        counts.append(len(pts))
-        timestamps.append(frame["t"])
+        elapsed = max(elapsed, float(frame.get("_phase_elapsed", 0.0)))
+        raw_pts = frame["pts"]
+        n = len(raw_pts)
+        range_pts, _ = range_points(frame)
+        counts.append(len(range_pts))
+        if n:
+            raw_ranges = np.linalg.norm(
+                raw_pts[:, :3].astype(np.float64), axis=1)
+            range_keep = (raw_ranges >= 0.3) & (raw_ranges <= 9.0)
+        else:
+            range_keep = np.zeros(0, dtype=bool)
         snr = frame["snr"]
-        if snr is not None:
-            snr = np.asarray(snr).reshape(-1)
-            pts_count = len(frame["pts"])
-            if len(snr) == pts_count:
-                _, ranges = range_points(frame)
-                keep = (ranges >= 0.3) & (ranges <= 9.0)
-                snr_values.extend(snr[keep].tolist())
+        if snr is None:
+            continue
+        snr = np.asarray(snr).reshape(-1)
+        if len(snr) != n:
+            snr_mismatch += 1
+            continue
+        snr_values.extend(snr[range_keep].tolist())
+        elapsed = max(elapsed, float(frame.get("_phase_elapsed", 0.0)))
     all_snr = np.asarray(snr_values, dtype=np.float64)
     all_snr = all_snr[np.isfinite(all_snr)]
     total_points = sum(counts)
     fraction = len(all_snr) / float(total_points) if total_points else 0.0
     median = float(np.median(all_snr)) if len(all_snr) else np.nan
-    if len(timestamps) > 1:
-        fps = len(timestamps) / max(timestamps[-1] - timestamps[0], 1e-6)
-    else:
-        fps = 0.0
+    fps = len(frames) / elapsed if elapsed > 0 else 0.0
     return {"frames": len(frames), "fps": fps, "mean": float(np.mean(counts)),
             "max": float(np.max(counts)), "snr_fraction": fraction,
-            "snr_median": median}
+            "snr_median": median, "snr_mismatch": snr_mismatch,
+            "elapsed": elapsed}
 
 
 def empty_background(frames):
@@ -136,6 +146,12 @@ def cfg_max_velocity(path):
     return None
 
 
+def frames_in_first_5s(frames):
+    """Frames that arrived within 5 s of their phase's collection start."""
+    return [frame for frame in frames
+            if frame["t"] - frame.get("_phase_start", frame["t"]) <= 5.0]
+
+
 def collect_phase(link, letter, name, instruction, phase_s):
     """Print a countdown and collect one labeled phase."""
     del name
@@ -144,17 +160,21 @@ def collect_phase(link, letter, name, instruction, phase_s):
     for remaining in range(5, 0, -1):
         print(f"  {remaining}...")
         time.sleep(1)
+    link.drain()
     print(f"{letter} collecting for {phase_s:g} seconds...")
     collected = []
-    deadline = time.time() + phase_s
-    while time.time() < deadline:
+    wall_start = time.time()
+    collection_start = time.monotonic()
+    deadline = collection_start + phase_s
+    while time.monotonic() < deadline:
         for frame in link.drain():
             frame["phase"] = letter
             collected.append(frame)
         time.sleep(0.02)
-    for frame in link.drain():
-        frame["phase"] = letter
-        collected.append(frame)
+    elapsed = time.monotonic() - collection_start
+    for frame in collected:
+        frame["_phase_elapsed"] = elapsed
+        frame["_phase_start"] = wall_start
     print(f"{letter}: received {len(collected)} frames")
     return collected
 
@@ -197,6 +217,7 @@ def print_report(stats, foreground_range, foreground_mean, walking):
         print(f"{letter}: frames={item['frames']} fps={item['fps']:.1f} "
               f"mean_pts={item['mean']:.1f}")
         print(f"{letter}: snr_fraction={item['snr_fraction']:.3f} snr_median={median_text}")
+        print(f"{letter}: snr_mismatch_frames={item['snr_mismatch']}")
     print(f"A: mean/max points per frame = {stats['A']['mean']:.1f}/{stats['A']['max']:.0f}")
     print(f"B: median foreground range = {foreground_range:.2f} m"
           if np.isfinite(foreground_range) else "B: median foreground range = n/a")
@@ -226,7 +247,6 @@ def main():
     cfg_path = args.cfg or sensor["cfg"]
 
     link = None
-    collection_start = time.time()
     phases = {"A": [], "B": [], "C": []}
     try:
         link = RadarLink(sensor["name"], sensor["cli"], sensor["data"], cfg_path,
@@ -238,47 +258,53 @@ def main():
             print(f"CONFIG ERROR: {exc}", file=sys.stderr)
             return 1
 
-        collection_start = time.time()
         for letter, name, instruction in PHASES:
             frames = collect_phase(link, letter, name, instruction, args.phase_s)
             phases[letter] = frames
-        first_five = [frame for frame in phases["A"]
-                      if frame["t"] - collection_start <= 5.0]
+        first_five = frames_in_first_5s(phases["A"])
     except KeyboardInterrupt:
         print("\nCtrl+C received; stopping collection.", file=sys.stderr)
-        first_five = [frame for frame in phases["A"]
-                      if frame["t"] - collection_start <= 5.0]
+        first_five = frames_in_first_5s(phases["A"])
     finally:
         if link is not None:
             link.close()
 
-    stats = {letter: phase_stats(frames) for letter, frames in phases.items()}
-    background = empty_background(phases["A"])
-    foreground_range, foreground_mean = foreground_stats(phases["B"], background)
-    walking = walking_stats(phases["C"])
-    print_report(stats, foreground_range, foreground_mean, walking)
-
-    print("\nStatus:")
-    print("PASS: received frames" if first_five else
-          "FAIL: no frames arrived in the first 5 s (check COM ports/SOP switches/that the TI visualizer is closed)")
-    for letter in ("A", "B", "C"):
-        fps = stats[letter]["fps"]
-        if fps < 7 or fps > 12:
-            print(f"FAIL: phase {letter} fps={fps:.1f} (expected 7-12)")
-    if stats["A"]["snr_fraction"] < 0.5:
-        print("WARN: SNR is missing for most points")
-    if foreground_mean < 3.0 * stats["A"]["mean"]:
-        print("WARN: phase B foreground points per frame is less than 3x phase A")
-    if np.isfinite(foreground_range) and not 1.2 <= foreground_range <= 3.0:
-        print("WARN: phase B median foreground range is outside 1.2 to 3.0 m")
-    max_doppler = walking[0]
-    if max_doppler < 1.0:
-        print("WARN: phase C max |Doppler| < 1.0 m/s (person not walking fast enough or velocity range wrong)")
-    max_velocity = cfg_max_velocity(cfg_path)
-    if max_velocity is not None and 0.95 * max_velocity <= max_doppler <= 1.05 * max_velocity:
-        print("WARN: phase C max |Doppler| is within 5% of cfg maximum velocity (likely aliasing)")
-
     save_frames(args.only, phases)
+
+    stats = {
+        letter: {"frames": 0, "fps": 0.0, "mean": 0.0, "max": 0.0,
+                 "snr_fraction": 0.0, "snr_median": np.nan, "snr_mismatch": 0,
+                 "elapsed": 0.0}
+        for letter in ("A", "B", "C")
+    }
+    try:
+        stats = {letter: phase_stats(frames) for letter, frames in phases.items()}
+        background = empty_background(phases["A"])
+        foreground_range, foreground_mean = foreground_stats(phases["B"], background)
+        walking = walking_stats(phases["C"])
+        print_report(stats, foreground_range, foreground_mean, walking)
+
+        print("\nStatus:")
+        print("PASS: received frames" if first_five else
+              "FAIL: no frames arrived in the first 5 s (check COM ports/SOP switches/that the TI visualizer is closed)")
+        for letter in ("A", "B", "C"):
+            fps = stats[letter]["fps"]
+            if fps < 7 or fps > 12:
+                print(f"FAIL: phase {letter} fps={fps:.1f} (expected 7-12)")
+        if stats["A"]["snr_fraction"] < 0.5:
+            print("WARN: SNR is missing for most points")
+        if foreground_mean < 3.0 * stats["A"]["mean"]:
+            print("WARN: phase B foreground points per frame is less than 3x phase A")
+        if np.isfinite(foreground_range) and not 1.2 <= foreground_range <= 3.0:
+            print("WARN: phase B median foreground range is outside 1.2 to 3.0 m")
+        max_doppler = walking[0]
+        if max_doppler < 1.0:
+            print("WARN: phase C max |Doppler| < 1.0 m/s (person not walking fast enough or velocity range wrong)")
+        max_velocity = cfg_max_velocity(cfg_path)
+        if max_velocity is not None and 0.95 * max_velocity <= max_doppler <= 1.05 * max_velocity:
+            print("WARN: phase C max |Doppler| is within 5% of cfg maximum velocity (likely aliasing)")
+    except Exception:
+        traceback.print_exc()
     return 0
 
 
