@@ -146,6 +146,12 @@ def cfg_max_velocity(path):
     return None
 
 
+def frames_in_first_5s(frames):
+    """Frames that arrived within 5 s of their phase's collection start."""
+    return [frame for frame in frames
+            if frame["t"] - frame.get("_phase_start", frame["t"]) <= 5.0]
+
+
 def collect_phase(link, letter, name, instruction, phase_s):
     """Print a countdown and collect one labeled phase."""
     del name
@@ -157,6 +163,7 @@ def collect_phase(link, letter, name, instruction, phase_s):
     link.drain()
     print(f"{letter} collecting for {phase_s:g} seconds...")
     collected = []
+    wall_start = time.time()
     collection_start = time.monotonic()
     deadline = collection_start + phase_s
     while time.monotonic() < deadline:
@@ -167,6 +174,7 @@ def collect_phase(link, letter, name, instruction, phase_s):
     elapsed = time.monotonic() - collection_start
     for frame in collected:
         frame["_phase_elapsed"] = elapsed
+        frame["_phase_start"] = wall_start
     print(f"{letter}: received {len(collected)} frames")
     return collected
 
@@ -239,7 +247,6 @@ def main():
     cfg_path = args.cfg or sensor["cfg"]
 
     link = None
-    collection_start = time.time()
     phases = {"A": [], "B": [], "C": []}
     try:
         link = RadarLink(sensor["name"], sensor["cli"], sensor["data"], cfg_path,
@@ -251,16 +258,13 @@ def main():
             print(f"CONFIG ERROR: {exc}", file=sys.stderr)
             return 1
 
-        collection_start = time.time()
         for letter, name, instruction in PHASES:
             frames = collect_phase(link, letter, name, instruction, args.phase_s)
             phases[letter] = frames
-        first_five = [frame for frame in phases["A"]
-                      if frame["t"] - collection_start <= 5.0]
+        first_five = frames_in_first_5s(phases["A"])
     except KeyboardInterrupt:
         print("\nCtrl+C received; stopping collection.", file=sys.stderr)
-        first_five = [frame for frame in phases["A"]
-                      if frame["t"] - collection_start <= 5.0]
+        first_five = frames_in_first_5s(phases["A"])
     finally:
         if link is not None:
             link.close()
