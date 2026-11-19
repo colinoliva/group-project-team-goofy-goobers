@@ -170,6 +170,8 @@ map*.ply
 data/
 model.json
 feature_names.json
-datasets/frames*.npz
-map*.ply
+datasets/
 data/
+
+
+
