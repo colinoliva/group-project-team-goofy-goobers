@@ -102,6 +102,7 @@ def reader(port, q, stop):
                 break
             pts = np.empty((0, 4), np.float32)
             snr = None
+            noise = None
             off, ok = HDR.size, True
             for _ in range(n_tlv):
                 if off + TLV.size > total:
@@ -118,13 +119,16 @@ def reader(port, q, stop):
                 elif t == TLV_SIDE_INFO and ln >= 4:
                     si = np.frombuffer(payload[:ln // 4 * 4], np.uint16).reshape(-1, 2)
                     snr = si[:, 0].astype(np.float32) * 0.1
+                    noise = si[:, 1].astype(np.float32) * 0.1
                 off += ln
             del buf[:total]
             if not ok:
                 continue
             if snr is not None and len(snr) != len(pts):
                 snr = None
-            item = {"t": time.time(), "frame": frame, "pts": pts, "snr": snr}
+            if noise is not None and len(noise) != len(pts):
+                noise = None
+            item = {"t": time.time(), "frame": frame, "pts": pts, "snr": snr, "noise": noise}
             if q.full():
                 try:
                     q.get_nowait()

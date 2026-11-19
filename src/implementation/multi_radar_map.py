@@ -13,7 +13,6 @@ Keys in the viewer:  R reset map | S save .ply | P pause accumulation
 """
 import argparse
 import datetime
-import threading
 import time
 
 import numpy as np
@@ -49,6 +48,11 @@ def main():
     ap.add_argument("--min-snr", type=float, default=0.0)
     ap.add_argument("--no-record", action="store_true")
     ap.add_argument("--verbose", action="store_true", help="echo every config line")
+    ap.add_argument("--record", action="store_true", help="record raw frames to a session")
+    ap.add_argument("--room", default="", help="recording room label")
+    ap.add_argument("--scenario", default="", help="recording scenario label")
+    ap.add_argument("--people", default="", help="recording people label")
+    ap.add_argument("--notes", default="", help="recording notes")
     args = ap.parse_args()
 
     if args.list_ports:
@@ -66,7 +70,14 @@ def main():
 
     links = []
     sched = None
+    recorder = None
     try:
+        if args.record:
+            from recorder import SessionRecorder
+            cfg_path = sensors[0]["cfg"] if sensors else ""
+            recorder = SessionRecorder(
+                room=args.room, scenario=args.scenario, people=args.people, notes=args.notes,
+                cfg_path=cfg_path, sensors_json_path=args.sensors, sensors=sensors)
         for s in sensors:
             link = RadarLink(s["name"], s["cli"], s["data"], s["cfg"], args.verbose)
             links.append(link)
@@ -156,6 +167,8 @@ def main():
 
             for i, link in enumerate(links):
                 for fr in link.drain():
+                    if recorder is not None:
+                        recorder.add(i, fr)
                     pts, snr = fr["pts"], fr["snr"]
                     n_fr[i] += 1
                     n_pt[i] += len(pts)
@@ -220,6 +233,8 @@ def main():
             vis.update_renderer()
             time.sleep(0.01)
     finally:
+        if recorder is not None:
+            recorder.close()
         if sched:
             sched.halt.set()
             sched.join(3.0)

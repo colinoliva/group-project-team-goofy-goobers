@@ -89,7 +89,7 @@ class MockSource:
 class LiveSource:
     live = True
 
-    def __init__(self, sensors_json, only, freerun, slot):
+    def __init__(self, sensors_json, only, freerun, slot, recorder=None):
         from radar_core import RadarLink, Scheduler, load_sensors
         _, sensors = load_sensors(sensors_json)
         if only:
@@ -100,6 +100,7 @@ class LiveSource:
             self.links.append(link)
             link.configure()
         self.sched = Scheduler(self.links, slot=slot, freerun=freerun)
+        self.recorder = recorder
         self.sched.start()
         self.label = ("LIVE " + ("freerun" if freerun else "time-division") if len(sensors) > 1
                       else f"LIVE {sensors[0]['name']}")
@@ -109,6 +110,8 @@ class LiveSource:
                               [np.empty(0, int)])
         for i, link in enumerate(self.links):
             for fr in link.drain():
+                if self.recorder is not None:
+                    self.recorder.add(i, fr)
                 pts = fr["pts"]
                 if len(pts) == 0:
                     continue
@@ -292,9 +295,32 @@ def main():
     ap.add_argument("--port", type=int, default=8050)
     ap.add_argument("--model", metavar="MODEL_JSON", help="XGBoost model file")
     ap.add_argument("--no-classify", action="store_true", help="keep all detections")
+    ap.add_argument("--record", action="store_true", help="record raw frames to a session")
+    ap.add_argument("--room", default="", help="recording room label")
+    ap.add_argument("--scenario", default="", help="recording scenario label")
+    ap.add_argument("--people", default="", help="recording people label")
+    ap.add_argument("--notes", default="", help="recording notes")
     args = ap.parse_args()
 
-    source = LiveSource(args.live, args.only, args.freerun, args.slot) if args.live else MockSource()
+    recorder = None
+    source = None
+    try:
+        if args.record and args.live:
+            from recorder import SessionRecorder
+            from radar_core import load_sensors
+            _, recording_sensors = load_sensors(args.live)
+            if args.only:
+                recording_sensors = [s for s in recording_sensors if s["name"] in args.only]
+            cfg_path = recording_sensors[0]["cfg"] if recording_sensors else ""
+            recorder = SessionRecorder(
+                room=args.room, scenario=args.scenario, people=args.people, notes=args.notes,
+                cfg_path=cfg_path, sensors_json_path=args.live, sensors=recording_sensors)
+        source = (LiveSource(args.live, args.only, args.freerun, args.slot, recorder)
+                  if args.live else MockSource())
+    except Exception:
+        if recorder is not None:
+            recorder.close()
+        raise
     engine = Engine(source, args.learn, args.eps, args.vmove,
                     classify=not args.no_classify, model_path=args.model)
     engine.start()
@@ -319,6 +345,9 @@ def main():
                                     marks=None, tooltip={"placement": "bottom"}), style={"width": "140px"}),
                 html.Button("Re-learn background", id="relearn", n_clicks=0,
                             style={"display": "block" if source.live else "none"}),
+                dcc.Input(id="event-text", type="text", placeholder="Event label",
+                          style={"width": "180px"}),
+                html.Button("Mark event", id="mark-event", n_clicks=0),
             ]),
             dcc.Graph(id="radar-plot", figure=build_base_figure(source.sensors, E),
                       style={"height": "92vh"}, config={"displayModeBar": True}),
@@ -329,6 +358,13 @@ def main():
     @app.callback(Output("dummy", "children"), Input("relearn", "n_clicks"), prevent_initial_call=True)
     def _relearn(_):
         engine.relearn()
+        return ""
+
+    @app.callback(Output("event-text", "value"), Input("mark-event", "n_clicks"),
+                  State("event-text", "value"), prevent_initial_call=True)
+    def _mark_event(_, text):
+        if recorder is not None and text:
+            recorder.mark(text)
         return ""
 
     @app.callback(Output("radar-plot", "figure"), Output("stats-bar", "children"),
@@ -406,6 +442,8 @@ def main():
         engine.halt.set()
         if source.live:
             source.close()
+        if recorder is not None:
+            recorder.close()
 
 
 if __name__ == "__main__":
