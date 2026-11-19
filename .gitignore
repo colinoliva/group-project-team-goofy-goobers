@@ -165,6 +165,7 @@ requirements.txt
 # Project Specific
 # ===========================
 # Add project-specific ignores below
+check_*.npz
 .envs
 model.json
 feature_names.json
