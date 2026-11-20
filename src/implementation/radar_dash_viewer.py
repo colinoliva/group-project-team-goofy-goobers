@@ -18,6 +18,7 @@ Spectate: pick a person in the dropdown. The 3D window re-centres on them each u
 you can still rotate the view with the mouse.
 """
 import argparse
+import logging
 import threading
 import time
 
@@ -436,6 +437,7 @@ def main():
         return patch, txt, opts
 
     print(f"\n  Viewer running ({source.label}). Open http://<this-machine's-address>:{args.port}\n")
+    logging.getLogger("werkzeug").setLevel(logging.ERROR)   # hide per-request log lines
     try:
         app.run(host="0.0.0.0", port=args.port, debug=False)
     finally:

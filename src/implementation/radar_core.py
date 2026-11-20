@@ -151,6 +151,7 @@ class RadarLink:
         # accept "sensorStart 0" (skip reconfig, faster restart) - try it only after it works.
         self.restart_cmd = "sensorStart"
         self.running = False
+        self._restart_error_logged = False
 
     def configure(self):
         send_config(self.cli, self.cfg_path, self.name, start=False, verbose=self.verbose)
@@ -166,6 +167,10 @@ class RadarLink:
     def start(self):
         resp = self._cmd(self.restart_cmd)
         if "Error" in resp:      # fall back to a full re-config, like TI's visualizer does
+            if not self._restart_error_logged:
+                print(f"[{self.name}] '{self.restart_cmd}' replied with Error, "
+                      f"falling back to full re-config: {resp[:200]!r}")
+                self._restart_error_logged = True
             send_config(self.cli, self.cfg_path, self.name, start=False, verbose=self.verbose)
             resp = self._cmd("sensorStart")
             if "Error" in resp:
