@@ -20,6 +20,7 @@ you can still rotate the view with the mouse.
 import argparse
 import logging
 import threading
+from collections import deque
 import time
 
 import numpy as np
@@ -138,9 +139,11 @@ class LiveSource:
 # Processing thread (acquire -> foreground -> cluster -> track), ~10 Hz
 # ---------------------------------------------------------------------------
 class Engine(threading.Thread):
-    def __init__(self, source, learn_s, eps, v_move, classify=True, model_path=None):
+    def __init__(self, source, learn_s, eps, v_move, classify=True, model_path=None, window_s=0.5):
         super().__init__(daemon=True)
         self.src, self.learn_s, self.eps, self.v_move = source, learn_s, eps, v_move
+        self.window_s = window_s
+        self.pool = deque()                       # (t, xyz, vel, snr) of recent foreground points
         self.classify, self.model = classify, None
         if classify and model_path:
             from xgboost import XGBClassifier
@@ -164,6 +167,7 @@ class Engine(threading.Thread):
         if self.src.live:
             self.bg.reset()
             self.tracker = Tracker()
+            self.pool.clear()
             self.t_learn = time.time()
 
     def run(self):
@@ -174,6 +178,7 @@ class Engine(threading.Thread):
             learning = not self.bg.frozen
             dets, assign, tracks, n_fg = [], {}, [], 0
             if learning:
+                self.pool.clear()
                 self.bg.learn(xyz[np.abs(vel) < 0.05])
                 if t0 - self.t_learn > self.learn_s:
                     self.bg.freeze()
@@ -181,16 +186,27 @@ class Engine(threading.Thread):
                 fg = (np.abs(vel) >= self.v_move) | ~self.bg.is_background(xyz)
                 idx = np.flatnonzero(fg)
                 n_fg = len(idx)
-                lab = cluster(xyz[idx], self.eps)
-                dets = detections(xyz[idx], lab)
+                # Pool foreground points over the last window_s seconds (as build_dataset.py
+                # does) and cluster the pool. Older points come first; this tick's are last.
+                while self.pool and self.pool[0][0] <= t0 - self.window_s:
+                    self.pool.popleft()
+                p_xyz = np.vstack([p[1] for p in self.pool] + [xyz[idx]])
+                p_vel = np.concatenate([p[2] for p in self.pool] + [vel[idx]])
+                p_snr = np.concatenate([p[3] for p in self.pool] + [snr[idx]])
+                n_old = len(p_xyz) - len(idx)
+                self.pool.append((t0, xyz[idx], vel[idx], snr[idx]))
+                lab = cluster(p_xyz, self.eps)
+                dets = detections(p_xyz, lab)
                 for d in dets:
-                    d["idx"] = idx[d["idx"]]
+                    d["pool_idx"] = d["idx"]
+                    cur = d["idx"][d["idx"] >= n_old] - n_old
+                    d["idx"] = idx[cur]               # this tick's points, for rendering
                 if self.classify:
                     keep = []
                     for d in dets:
-                        cl_xyz = xyz[d["idx"]]
-                        cl_vel = vel[d["idx"]]
-                        cl_snr = snr[d["idx"]]
+                        cl_xyz = p_xyz[d["pool_idx"]]
+                        cl_vel = p_vel[d["pool_idx"]]
+                        cl_snr = p_snr[d["pool_idx"]]
                         features = extract_features(cl_xyz, cl_vel, cl_snr, self.sensor_pos)
                         if self.model is None:
                             human = is_human_rule(features)
@@ -292,6 +308,10 @@ def main():
     ap.add_argument("--learn", type=float, default=30.0, help="live: seconds of empty-room learning")
     ap.add_argument("--eps", type=float, default=0.4, help="DBSCAN neighbourhood radius, m")
     ap.add_argument("--vmove", type=float, default=0.1, help="|Doppler| above this counts as moving, m/s")
+    ap.add_argument("--window-s", dest="window_s", type=float, default=0.0,
+                    help="EXPERIMENTAL: pool foreground points over this many seconds before "
+                         "clustering; gave false tracks in an empty-room test "
+                         "(default: %(default)s = no pooling, the previous behaviour)")
     ap.add_argument("--extent", type=float, default=4.0, help="half-width of the plotted area, m")
     ap.add_argument("--port", type=int, default=8050)
     ap.add_argument("--model", metavar="MODEL_JSON", help="XGBoost model file")
@@ -323,7 +343,7 @@ def main():
             recorder.close()
         raise
     engine = Engine(source, args.learn, args.eps, args.vmove,
-                    classify=not args.no_classify, model_path=args.model)
+                    classify=not args.no_classify, model_path=args.model, window_s=args.window_s)
     engine.start()
     ui = {"mode": "free", "ids": ()}
     E = args.extent
