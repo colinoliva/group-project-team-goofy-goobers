@@ -2,6 +2,7 @@
 """Guided end-to-end hardware check for one radar sensor."""
 
 import argparse
+import hashlib
 import re
 import sys
 import time
@@ -28,6 +29,7 @@ def parse_args():
     parser.add_argument("--cfg", default=None, help="Radar config file")
     parser.add_argument("--phase-s", dest="phase_s", type=float, default=15.0)
     parser.add_argument("--verbose", action="store_true", help="Echo every config line")
+    parser.add_argument("--note", default="", help="Free-text note saved with the recording")
     return parser.parse_args()
 
 
@@ -179,7 +181,27 @@ def collect_phase(link, letter, name, instruction, phase_s):
     return collected
 
 
-def save_frames(sensor_name, phases):
+META_KEYS = ("sensor", "cfg_path", "cfg_sha256", "note")
+
+
+def run_metadata(sensor_name, cfg_path, note):
+    """Sensor, cfg path, SHA-256 of the cfg file text, and the user's note."""
+    try:
+        with open(cfg_path, "rb") as handle:
+            digest = hashlib.sha256(handle.read()).hexdigest()
+    except OSError:
+        digest = "unreadable"
+    return {"sensor": sensor_name, "cfg_path": cfg_path,
+            "cfg_sha256": digest, "note": note}
+
+
+def print_metadata(meta):
+    """Print the run metadata lines at the top of the report."""
+    for key in META_KEYS:
+        print(f"{key}: {meta[key]}")
+
+
+def save_frames(sensor_name, phases, meta=None):
     """Save concatenated raw frames to a timestamped NPZ file."""
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     filename = f"check_{sensor_name}_{timestamp}.npz"
@@ -204,7 +226,8 @@ def save_frames(sensor_name, phases):
     snrs = np.concatenate(snr_parts) if snr_parts and sum(counts) else np.empty(0, dtype=np.float32)
     np.savez(filename, t=np.asarray(times, dtype=np.float64),
              phase=np.asarray(labels), counts=np.asarray(counts, dtype=np.int64),
-             pts=points, snr=snrs)
+             pts=points, snr=snrs,
+             **{key: np.asarray(str(value)) for key, value in (meta or {}).items()})
     print(f"Saved raw frames to {filename}")
     return filename
 
@@ -245,6 +268,7 @@ def main():
         return 2
     sensor = matches[0]
     cfg_path = args.cfg or sensor["cfg"]
+    meta = run_metadata(args.only, cfg_path, args.note)
 
     link = None
     phases = {"A": [], "B": [], "C": []}
@@ -269,7 +293,7 @@ def main():
         if link is not None:
             link.close()
 
-    save_frames(args.only, phases)
+    save_frames(args.only, phases, meta)
 
     stats = {
         letter: {"frames": 0, "fps": 0.0, "mean": 0.0, "max": 0.0,
@@ -282,6 +306,7 @@ def main():
         background = empty_background(phases["A"])
         foreground_range, foreground_mean = foreground_stats(phases["B"], background)
         walking = walking_stats(phases["C"])
+        print_metadata(meta)
         print_report(stats, foreground_range, foreground_mean, walking)
 
         print("\nStatus:")
