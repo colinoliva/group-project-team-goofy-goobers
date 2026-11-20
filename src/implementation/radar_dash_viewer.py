@@ -18,6 +18,7 @@ Spectate: pick a person in the dropdown. The 3D window re-centres on them each u
 you can still rotate the view with the mouse.
 """
 import argparse
+import csv
 import logging
 import threading
 from collections import deque
@@ -25,7 +26,7 @@ import time
 
 import numpy as np
 import plotly.graph_objects as go
-from dash import Dash, Input, Output, Patch, State, dcc, html, no_update
+from dash import Dash, Input, Output, Patch, State, ctx, dcc, html, no_update
 
 from radar_core import PALETTE, apply_T, filter_points, fov_lines, grid_lines, pose_to_T
 from features import extract_features, to_vector
@@ -38,6 +39,53 @@ Z_LO, Z_HI = -0.05, 3.0
 
 # fixed trace slots - the callback only patches these, never rebuilds the figure
 I_MAP, I_LIVE, I_CLUS, I_BOX, I_LABEL, I_TRAIL = range(6)
+SHOW_MAX_S = 2.0            # longest "Show last (s)" setting; live points kept this long for drawing
+HEALTH_WINDOW_S = 5.0       # health row: fps / points per frame over this many seconds
+HEALTH_STALE_S = 2.0        # health row: red after this long without a frame
+
+
+class SensorHealth:
+    """Per-sensor frame log for the UI health row. Display only; no effect on processing."""
+
+    def __init__(self, n_sensors):
+        self.log = [deque() for _ in range(n_sensors)]     # (arrival time, points) per frame
+        self.last = [None] * n_sensors
+        self.t_start = time.time()
+        self.slot_start, self.prev_active = {}, None
+        self.lock = threading.Lock()
+
+    def add(self, frames):
+        with self.lock:
+            for i, t, n in frames:
+                if 0 <= i < len(self.log):
+                    self.log[i].append((t, n))
+                    self.last[i] = t
+
+    def snapshot(self, now, active, continuous):
+        """[(fps, points/frame, seconds since last frame or None, state)], state ok/stale/idle."""
+        with self.lock:
+            if active != self.prev_active:
+                if active is not None:
+                    self.slot_start[active] = now
+                self.prev_active = active
+            span = min(HEALTH_WINDOW_S, max(now - self.t_start, 1e-6))
+            out = []
+            for i, log in enumerate(self.log):
+                while log and log[0][0] < now - HEALTH_WINDOW_S:
+                    log.popleft()
+                fps = len(log) / span
+                ppf = float(np.mean([n for _, n in log])) if log else float("nan")
+                age = now - self.last[i] if self.last[i] is not None else None
+                if continuous:
+                    quiet = (now - self.t_start) if age is None else age
+                    state = "stale" if quiet > HEALTH_STALE_S else "ok"
+                elif active == i:                  # time-division: judge only the active slot
+                    since = max(self.last[i] or 0.0, self.slot_start.get(i, now))
+                    state = "stale" if now - since > HEALTH_STALE_S else "ok"
+                else:
+                    state = "idle"
+                out.append((fps, ppf, age, state))
+            return out
 
 
 # ---------------------------------------------------------------------------
@@ -102,6 +150,7 @@ class LiveSource:
             self.links.append(link)
             link.configure()
         self.sched = Scheduler(self.links, slot=slot, freerun=freerun)
+        self.continuous = freerun or len(self.links) == 1     # health row: no time-division slots
         self.recorder = recorder
         self.sched.start()
         self.label = ("LIVE " + ("freerun" if freerun else "time-division") if len(sensors) > 1
@@ -110,11 +159,13 @@ class LiveSource:
     def next_frame(self):
         xyz, vel, snr, sid = ([np.empty((0, 3))], [np.empty(0)], [np.empty(0)],
                               [np.empty(0, int)])
+        frames = []                                           # (sensor index, arrival t, points)
         for i, link in enumerate(self.links):
             for fr in link.drain():
                 if self.recorder is not None:
                     self.recorder.add(i, fr)
                 pts = fr["pts"]
+                frames.append((i, fr["t"], len(pts)))
                 if len(pts) == 0:
                     continue
                 p, keep = filter_points(pts, fr["snr"], 0.3, 9.0, 0.0)
@@ -126,7 +177,7 @@ class LiveSource:
                     snr.append(np.asarray(fr["snr"], dtype=float)[keep])
                 sid.append(np.full(int(keep.sum()), i))
         return {"xyz": np.vstack(xyz), "vel": np.concatenate(vel),
-                "snr": np.concatenate(snr), "sid": np.concatenate(sid)}
+                "snr": np.concatenate(snr), "sid": np.concatenate(sid), "frames": frames}
 
     def close(self):
         self.sched.halt.set()
@@ -144,6 +195,8 @@ class Engine(threading.Thread):
         self.src, self.learn_s, self.eps, self.v_move = source, learn_s, eps, v_move
         self.window_s = window_s
         self.pool = deque()                       # (t, xyz, vel, snr) of recent foreground points
+        self.history = deque()                    # (t, xyz, sid) of recent live points, drawing only
+        self.health = SensorHealth(len(source.sensors)) if source.live else None
         self.classify, self.model = classify, None
         if classify and model_path:
             from xgboost import XGBClassifier
@@ -175,6 +228,11 @@ class Engine(threading.Thread):
             t0 = time.time()
             fr = self.src.next_frame()
             xyz, vel, snr, sid = fr["xyz"], fr["vel"], fr["snr"], fr["sid"]
+            if self.health is not None:
+                self.health.add(fr.get("frames", []))
+            self.history.append((t0, xyz, sid))
+            while self.history and self.history[0][0] < t0 - SHOW_MAX_S:
+                self.history.popleft()
             learning = not self.bg.frozen
             dets, assign, tracks, n_fg = [], {}, [], 0
             if learning:
@@ -226,7 +284,7 @@ class Engine(threading.Thread):
             snap = [{"id": tr.id, "pos": tr.pos.copy(), "trail": np.array(tr.trail)} for tr in tracks]
             with self.lock:
                 self.state = {"xyz": xyz, "sid": sid, "fg": n_fg, "dets": dets, "assign": assign,
-                              "tracks": snap, "learning": learning,
+                              "tracks": snap, "learning": learning, "history": list(self.history),
                               "left": max(0.0, self.learn_s - (t0 - self.t_learn))}
             self.halt.wait(max(0.0, 0.1 - (time.time() - t0)))
 
@@ -370,10 +428,28 @@ def main():
                           style={"width": "180px"}),
                 html.Button("Mark event", id="mark-event", n_clicks=0),
             ]),
+            html.Div(style={"display": "flex", "alignItems": "center", "gap": "18px",
+                            "padding": "6px 20px", "backgroundColor": "#141414",
+                            "borderBottom": "1px solid #333", "color": "#ddd", "fontSize": "13px"},
+                     children=[
+                html.Span(id="rec-badge"),
+                html.Button("GO", id="mark-go", n_clicks=0, disabled=recorder is None,
+                            style={"fontSize": "20px", "fontWeight": "bold", "padding": "6px 26px",
+                                   "backgroundColor": "#1f7a1f", "color": "#fff", "border": "none"}),
+                html.Button("DONE", id="mark-done", n_clicks=0, disabled=recorder is None,
+                            style={"fontSize": "20px", "fontWeight": "bold", "padding": "6px 26px",
+                                   "backgroundColor": "#8a1c1c", "color": "#fff", "border": "none"}),
+                html.Div(id="last-marks", style={"color": "#aaa", "maxWidth": "420px"}),
+                html.Div(id="health-row", style={"flex": "1", "display": "flex", "gap": "14px"}),
+                html.Span("Show last (s):"),
+                html.Div(dcc.Slider(id="show-s", min=0.1, max=SHOW_MAX_S, step=0.1, value=0.1,
+                                    marks=None, tooltip={"placement": "bottom"}), style={"width": "140px"}),
+            ]),
             dcc.Graph(id="radar-plot", figure=build_base_figure(source.sensors, E),
-                      style={"height": "92vh"}, config={"displayModeBar": True}),
+                      style={"height": "86vh"}, config={"displayModeBar": True}),
             dcc.Interval(id="tick", interval=150),
             html.Div(id="dummy", style={"display": "none"}),
+            html.Div(id="mark-ack", style={"display": "none"}),
         ])
 
     @app.callback(Output("dummy", "children"), Input("relearn", "n_clicks"), prevent_initial_call=True)
@@ -388,11 +464,67 @@ def main():
             recorder.mark(text)
         return ""
 
+    @app.callback(Output("mark-ack", "children"), Input("mark-go", "n_clicks"),
+                  Input("mark-done", "n_clicks"), prevent_initial_call=True)
+    def _mark_go_done(_go, _done):
+        if recorder is not None and ctx.triggered_id in ("mark-go", "mark-done"):
+            recorder.mark("go" if ctx.triggered_id == "mark-go" else "done")
+        return ""
+
+    def last_marks(k=5):
+        """Last k events as saved by the recorder in events.csv (not the button clicks)."""
+        path = recorder.path / "events.csv"
+        try:
+            with open(path, newline="") as f:
+                rows = [r for r in csv.reader(f) if len(r) >= 2]
+        except OSError:
+            return []
+        out = []
+        for epoch, label in rows[-k:]:
+            try:
+                out.append(f"{time.strftime('%H:%M:%S', time.localtime(float(epoch)))} {label}")
+            except ValueError:
+                continue
+        return out
+
+    @app.callback(Output("rec-badge", "children"), Output("rec-badge", "style"),
+                  Output("last-marks", "children"), Output("health-row", "children"),
+                  Input("tick", "n_intervals"), prevent_initial_call=True)
+    def update_status(_n):
+        now = time.time()
+        if recorder is not None:
+            el = int(now - recorder.start_epoch)
+            badge = f"\u25cf REC {el // 60:02d}:{el % 60:02d}  {recorder.path.name}"
+            badge_style = {"color": "#fff", "backgroundColor": "#c00", "padding": "4px 10px",
+                           "fontWeight": "bold", "borderRadius": "4px"}
+            marks = last_marks()
+            marks_txt = "last marks: " + (" | ".join(marks) if marks else "none yet")
+        else:
+            badge = "not recording"
+            badge_style = {"color": "#888", "border": "1px solid #555", "padding": "4px 10px",
+                           "borderRadius": "4px"}
+            marks_txt = "last marks: (not recording)"
+        if engine.health is None:
+            health = [html.Span("health: mock", style={"color": "#888"})]
+        else:
+            health = []
+            rows = engine.health.snapshot(now, source.sched.active, source.continuous)
+            for sensor, (fps, ppf, age, state) in zip(source.sensors, rows):
+                age_txt = "never" if age is None else f"{age:.1f}s ago"
+                ppf_txt = "-" if not np.isfinite(ppf) else f"{ppf:.1f}"
+                color = {"ok": "#7c7", "stale": "#fff", "idle": "#888"}[state]
+                bg = "#a00" if state == "stale" else "transparent"
+                health.append(html.Span(
+                    f"{sensor['name']}: {fps:.1f} fps | {ppf_txt} pts/fr | {age_txt}"
+                    + (" (idle slot)" if state == "idle" else ""),
+                    style={"color": color, "backgroundColor": bg, "padding": "2px 6px"}))
+        return badge, badge_style, marks_txt, health
+
     @app.callback(Output("radar-plot", "figure"), Output("stats-bar", "children"),
                   Output("follow", "options"),
                   Input("tick", "n_intervals"), State("follow", "value"), State("zoom", "value"),
-                  prevent_initial_call=True)
-    def update(n, follow, zoom):
+                  State("show-s", "value"), prevent_initial_call=True)
+    def update(n, follow, zoom, show_s):
         with engine.lock:
             s = engine.state
         xyz, sid, tracks = s["xyz"], s["sid"], s["tracks"]
@@ -401,9 +533,15 @@ def main():
         def put(i, x, y, z):
             patch["data"][i]["x"], patch["data"][i]["y"], patch["data"][i]["z"] = x, y, z
 
-        # live points colored by the sensor that saw them
-        put(I_LIVE, xyz[:, 0].tolist(), xyz[:, 1].tolist(), xyz[:, 2].tolist())
-        patch["data"][I_LIVE]["marker"]["color"] = [SENSOR_HEX[i % len(SENSOR_HEX)] for i in sid.tolist()]
+        # live points colored by the sensor that saw them, drawn for the last show_s seconds
+        # (drawing only: clustering above uses this tick's points as before)
+        hist = s.get("history") or [(0.0, xyz, sid)]
+        cutoff = hist[-1][0] - float(show_s or 0.1)
+        shown = [h for h in hist if h[0] > cutoff] or hist[-1:]
+        lxyz = np.vstack([h[1] for h in shown])
+        lsid = np.concatenate([h[2] for h in shown])
+        put(I_LIVE, lxyz[:, 0].tolist(), lxyz[:, 1].tolist(), lxyz[:, 2].tolist())
+        patch["data"][I_LIVE]["marker"]["color"] = [SENSOR_HEX[i % len(SENSOR_HEX)] for i in lsid.tolist()]
 
         # clustered points colored by the person (track) they belong to, plus bounding boxes
         cx, cc, boxes = [], [], []
