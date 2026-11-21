@@ -171,6 +171,38 @@ class HeatMap:
         i, j = np.unravel_index(np.argmax(np.where(ok, total, -np.inf)), total.shape)
         return np.array([self.c[i], self.c[j]])
 
+    def peaks(self, k=3, min_sep=1.5, min_sensors=2):
+        """Up to k distinct motion sources in the current grids: [(x, y, score)], strongest first.
+
+        Reads the grids as left by the last update() and changes nothing (update() and its
+        single peak are unaffected). Candidate cells need >= min_sensors sensor grids above the
+        threshold and must be a local maximum of the summed grid among such cells (3x3
+        neighbourhood), so a peak's shoulder is not a second source. Non-maximum suppression:
+        a peak closer than min_sep metres to a stronger one is dropped. score is the summed
+        grid value (weighted moving points per second near the cell, plus the static channel).
+        With min_sensors = self.min_s, the first peak is the cell update() returns.
+        """
+        rate = self.G * self.scale
+        ok = (rate > self.thr).sum(axis=0) >= min_sensors
+        if not ok.any():
+            return []
+        total = rate.sum(axis=0) + self.w * self.Gs * self.scale
+        masked = np.where(ok, total, -np.inf)
+        padded = np.pad(masked, 1, constant_values=-np.inf)
+        n = masked.shape[0]
+        neigh = np.max([padded[1 + di:1 + di + n, 1 + dj:1 + dj + n]
+                        for di in (-1, 0, 1) for dj in (-1, 0, 1) if (di, dj) != (0, 0)], axis=0)
+        cand = np.argwhere(ok & (masked >= neigh))
+        order = np.argsort(-masked[cand[:, 0], cand[:, 1]], kind="stable")
+        out = []
+        for i, j in cand[order]:
+            x, y = float(self.c[i]), float(self.c[j])
+            if all((x - px) ** 2 + (y - py) ** 2 >= min_sep ** 2 for px, py, _ in out):
+                out.append((x, y, float(total[i, j])))
+                if len(out) >= k:
+                    break
+        return out
+
 
 def replay_heatmap(sess, p):
     a0, a1 = sess["active"]
