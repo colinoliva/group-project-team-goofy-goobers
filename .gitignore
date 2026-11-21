@@ -176,3 +176,6 @@ sensors.mac.json
 
 
 
+
+# dashboard settings presets (radar_dash_viewer.py)
+presets/
