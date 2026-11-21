@@ -9,7 +9,7 @@ Vertices are at 90, 210 and 330 degrees (S1 at +y, S2 at back-left, S3 at back-r
   --facing forward  : all sensors look along +y (wall-mounted cluster, max overlap in front)
 
 Ex:
-    python make_layout.py --side 1.5 --height 1.3 --facing inward
+    python make_layout.py --side 2.54 --height 1.37 --facing inward   # rig v2 (the defaults)
 Then edit the COM ports in sensors.json (python multi_radar_map.py --list-ports).
 """
 import argparse
@@ -17,8 +17,8 @@ import json
 import math
 
 ap = argparse.ArgumentParser()
-ap.add_argument("--side", type=float, default=1.5, help="triangle side length, m")
-ap.add_argument("--height", type=float, default=1.3, help="sensor height above floor, m")
+ap.add_argument("--side", type=float, default=2.54, help="triangle side length, m (rig v2)")
+ap.add_argument("--height", type=float, default=1.37, help="sensor height above floor, m (rig v2)")
 ap.add_argument("--facing", choices=["inward", "outward", "forward"], default="inward")
 ap.add_argument("--yaw-offset", type=float, default=0.0, help="extra yaw applied to all, deg")
 ap.add_argument("--pitch", type=float, default=0.0, help="tilt down, deg")
