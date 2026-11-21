@@ -52,8 +52,16 @@ MIN_RANGE, MAX_RANGE = 0.3, 9.0    # radar_dash_viewer.py filter_points call
 COLUMNS = FEATURE_NAMES + ["label", "session_id", "person"]
 
 
-def sensor_transforms(meta, poses_path=None):
-    """Return {sensor index: (name, 4x4 T)}; --poses overrides by sensor name."""
+POSE_WARN_M = 0.05      # warn when --poses moves a sensor this far from the session's meta.json
+
+
+def sensor_transforms(meta, poses_path=None, label="session"):
+    """Return {sensor index: (name, 4x4 T)}; --poses overrides by sensor name.
+
+    With --poses, warns (does not stop) when a sensor's position differs by more than
+    POSE_WARN_M from the pose recorded in the session's meta.json: --poses must match the
+    rig the session was recorded on.
+    """
     override = {}
     if poses_path:
         data = json.loads(Path(poses_path).read_text())
@@ -61,20 +69,31 @@ def sensor_transforms(meta, poses_path=None):
         for s in entries:
             if isinstance(s, dict) and isinstance(s.get("pose"), dict):
                 override[s["name"]] = pose_to_T(**s["pose"])
-    out = {}
+    out, moved = {}, []
     for i, entry in enumerate(meta.get("sensor_layout", [])):
         name = entry.get("name", f"sensor{i}")
+        T = entry.get("T")
+        if isinstance(T, dict):
+            T = pose_to_T(**T)
         if name in override:
+            if T is not None:
+                d = float(np.linalg.norm(override[name][:3, 3] - np.asarray(T, float)[:3, 3]))
+                if d > POSE_WARN_M:
+                    moved.append((name, np.asarray(T, float)[:3, 3], override[name][:3, 3], d))
             T = override[name]
-        else:
-            T = entry.get("T")
-            if isinstance(T, dict):
-                T = pose_to_T(**T)
         out[i] = (name, np.asarray(T, dtype=float))
     if poses_path:
         missing = [n for n, _ in out.values() if n not in override]
         if missing:
             print(f"  warning: no pose in {poses_path} for {missing}; using meta.json T")
+    if moved:
+        print(f"  WARNING: --poses {poses_path} does not match the poses recorded in {label}'s "
+              f"meta.json (> {POSE_WARN_M * 100:.0f} cm):")
+        for name, old, new, d in moved:
+            print(f"    {name}: meta.json ({old[0]:+.3f}, {old[1]:+.3f}, {old[2]:.3f}) -> --poses "
+                  f"({new[0]:+.3f}, {new[1]:+.3f}, {new[2]:.3f}), moved {d:.3f} m")
+        print("    --poses must match the rig the session was recorded on (rig v1 vs v2); "
+              "continuing with --poses as given")
     return out
 
 
@@ -133,7 +152,7 @@ def build_session(path, args, writer):
         print("  skipped: no frames")
         return 0
 
-    Ts = sensor_transforms(meta, args.poses)
+    Ts = sensor_transforms(meta, args.poses, label=session_id)
     sensor_pos = np.asarray([T[:3, 3] for _, T in Ts.values()])
     start = float(meta.get("start_epoch", frames[0]["t"]))
     learn_end = start + args.learn_s
