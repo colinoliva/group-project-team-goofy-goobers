@@ -17,21 +17,32 @@ import rule_baseline
 from rule_baseline import is_human_rule
 
 
+META_COLUMNS = ("label", "session_id", "person")
+
+
 def load_dataset(path):
-    """Load features, labels, session IDs and people (None if no person column) from CSV."""
+    """Load features, labels, session IDs, people (None if no person column) and feature names.
+
+    Feature columns are features.FEATURE_NAMES (cluster rows from build_dataset.py) when the
+    CSV has all of them, otherwise every column except label, session_id and person (e.g.
+    window rows from build_windows.py).
+    """
     features, labels, sessions, people = [], [], [], []
     with open(path, "r", newline="", encoding="utf-8") as source:
         reader = csv.DictReader(source)
-        has_person = "person" in (reader.fieldnames or [])
+        header = reader.fieldnames or []
+        has_person = "person" in header
+        names = (list(FEATURE_NAMES) if all(n in header for n in FEATURE_NAMES)
+                 else [c for c in header if c not in META_COLUMNS])
         for row in reader:
-            vector = [float(row[name]) for name in FEATURE_NAMES]
+            vector = [float(row[name]) for name in names]
             if np.isfinite(vector).all():
                 features.append(vector)
                 labels.append(1 if row["label"].lower() == "human" else 0)
                 sessions.append(row["session_id"])
                 people.append(row["person"] if has_person else "")
     return (np.asarray(features), np.asarray(labels), np.asarray(sessions),
-            np.asarray(people) if has_person else None)
+            np.asarray(people) if has_person else None, names)
 
 
 def split_people(value):
@@ -131,9 +142,13 @@ def print_summary(name, scores, truth, predicted):
 
 def train(path, save=False, group_by="session+person"):
     """Grouped cross-validation of XGBoost and the rule baseline; optionally save."""
-    x, y, sessions, people = load_dataset(path)
+    x, y, sessions, people, names = load_dataset(path)
     if len(x) == 0:
         raise SystemExit("No finite feature rows found")
+    use_rule = names == list(FEATURE_NAMES)      # the rule needs cluster features
+    if not use_rule:
+        print(f"feature columns from the CSV header ({len(names)}): {', '.join(names)}; "
+              f"rule baseline n/a (it needs the cluster features)")
     n_human = int(np.count_nonzero(y == 1))
     n_nonhuman = int(np.count_nonzero(y == 0))
     print(f"data: {path} | rows {len(y)} | human {n_human} | nonhuman {n_nonhuman}")
@@ -165,24 +180,27 @@ def train(path, save=False, group_by="session+person"):
         model = new_model(y_train)
         model.fit(x[train_index], y_train)
         xgb_pred = model.predict(x[test_index])
-        rule_pred = rule_predict(x[test_index])
         xgb_scores.append(fold_scores(y_test, xgb_pred))
-        rule_scores.append(fold_scores(y_test, rule_pred))
         truth_all.append(y_test)
         xgb_all.append(xgb_pred)
-        rule_all.append(rule_pred)
         print(f"  XGBoost       {format_scores(xgb_scores[-1])}")
-        print(f"  Rule baseline {format_scores(rule_scores[-1])}")
+        if use_rule:
+            rule_pred = rule_predict(x[test_index])
+            rule_scores.append(fold_scores(y_test, rule_pred))
+            rule_all.append(rule_pred)
+            print(f"  Rule baseline {format_scores(rule_scores[-1])}")
     if not xgb_scores:
         raise SystemExit("No usable folds")
 
     print(f"\n{len(xgb_scores)} folds trained; metrics as mean ± std over the folds where "
           f"each metric is defined (count in brackets)")
-    print(f"rule baseline thresholds: height {rule_baseline.HEIGHT_MIN:g}-{rule_baseline.HEIGHT_MAX:g} m, "
-          f"xy_extent < {rule_baseline.XY_MAX:g} m, n_points >= {rule_baseline.MIN_POINTS}")
+    if use_rule:
+        print(f"rule baseline thresholds: height {rule_baseline.HEIGHT_MIN:g}-{rule_baseline.HEIGHT_MAX:g} m, "
+              f"xy_extent < {rule_baseline.XY_MAX:g} m, n_points >= {rule_baseline.MIN_POINTS}")
     truth_all = np.concatenate(truth_all)
     print_summary("XGBoost", xgb_scores, truth_all, np.concatenate(xgb_all))
-    print_summary("Rule baseline", rule_scores, truth_all, np.concatenate(rule_all))
+    if use_rule:
+        print_summary("Rule baseline", rule_scores, truth_all, np.concatenate(rule_all))
 
     model = new_model(y)
     model.fit(x, y)
@@ -190,15 +208,16 @@ def train(path, save=False, group_by="session+person"):
     order = np.argsort(importances)[::-1]
     print("XGBoost feature importances (model fit on all rows):")
     for index in order:
-        print(f"  {FEATURE_NAMES[index]}={importances[index]:.4f}")
-    print("Rule baseline feature importances:")
-    for name in ("height_extent", "xy_extent", "n_points"):
-        print(f"  {name}=n/a")
+        print(f"  {names[index]}={importances[index]:.4f}")
+    if use_rule:
+        print("Rule baseline feature importances:")
+        for name in ("height_extent", "xy_extent", "n_points"):
+            print(f"  {name}=n/a")
 
     if save:
         model.save_model("model.json")
         with open("feature_names.json", "w", encoding="utf-8") as output:
-            json.dump(FEATURE_NAMES, output)
+            json.dump(names, output)
         print("Saved model.json and feature_names.json (fit on all rows)")
     else:
         print("Not saved (pass --save to write model.json)")
