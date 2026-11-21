@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Check sensor poses by comparing where each sensor sees the same moving person.
 
-usage: python3 check_poses.py [data/<session>] [--target X Y Z] [--radius R]
-       (default session: newest in data/; default target 0 0 1.27, radius 0.7 m)
+usage: python3 check_poses.py [data/<session>] [--target X Y Z] [--radius R] [--poses sensors.json]
+       (default session: newest in data/; default target 0 0 1.37 = rig v2 sensor height, radius 0.7 m)
 
 Pair check: for every 0.5 s window in which at least 2 sensors each have >= 3
 moving points (|Doppler| >= 0.1 m/s), each sensor's moving points are moved to
@@ -27,6 +27,7 @@ from itertools import combinations
 
 import numpy as np
 
+from build_dataset import sensor_transforms as sensor_transforms_with_poses
 from load_session import load_session
 from radar_core import apply_T, pose_to_T, world_to_sensor
 
@@ -145,9 +146,12 @@ def target_check(frames, Ts, target, radius):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("path", nargs="?", help="session folder (default: newest in data/)")
-    ap.add_argument("--target", nargs=3, type=float, default=[0.0, 0.0, 1.27],
+    ap.add_argument("--target", nargs=3, type=float, default=[0.0, 0.0, 1.37],
                     metavar=("X", "Y", "Z"), help="world position of the tape mark")
     ap.add_argument("--radius", type=float, default=0.7, help="target radius in m")
+    ap.add_argument("--poses", default=None,
+                    help="sensors JSON with pose blocks to use instead of meta.json T "
+                         "(warns if it differs from meta.json by > 5 cm)")
     args = ap.parse_args()
 
     path = args.path
@@ -157,7 +161,8 @@ def main():
             raise SystemExit("no sessions found in data/")
         path = sessions[-1]
     meta, frames, _ = load_session(path)
-    Ts = sensor_transforms(meta)
+    Ts = (sensor_transforms_with_poses(meta, args.poses, label=os.path.basename(os.path.normpath(path)))
+          if args.poses else sensor_transforms(meta))
     print(f"session: {path}")
     for i, (name, T) in Ts.items():
         print(f"  sensor {i} = {name}, position {T[:3, 3].round(3).tolist()}")
