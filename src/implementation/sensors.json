@@ -1,5 +1,5 @@
 {
-  "cfg": "mapping.cfg",
+  "cfg": "mapping_v2.cfg",
   "sensors": [
     {
       "name": "S1",
