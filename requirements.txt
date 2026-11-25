@@ -1,0 +1,6 @@
+numpy
+pyserial
+open3d
+dash
+plotly
+scikit-learn

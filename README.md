@@ -99,6 +99,7 @@ Open3D Results:
 | Backend / Processing | Python, NumPy, pySerial |
 | Hardware | TI IWR6843AOP mmWave radar, serial UART interface |
 | Data Recording | `.npz` raw frame capture, `.ply` saved map exports |
+| CI/CD | GitHub Actions checks and tag-triggered GitHub Releases |
 
 ---
 
@@ -108,9 +109,7 @@ Open3D Results:
 
 - Python 3.9+ (3.10/3.11 recommended)
 - `pip` or another Python package manager
-- `numpy`
-- `pyserial`
-- `open3d`
+- packages listed in `requirements.txt`
 - A TI IWR6843AOP sensor connected over serial UART ports for live hardware mode
 
 ### Installation
@@ -131,8 +130,12 @@ python -m venv .venv
 # source .venv/bin/activate
 
 pip install --upgrade pip
-pip install numpy pyserial open3d dash plotly
+pip install -r requirements.txt
 ```
+
+The repository's `sensors.json` contains local serial-port settings. For a new
+setup, copy `sensors.example.json` to `src/implementation/sensors.json` and set
+the CLI/data port names and sensor poses for your hardware.
 
 ### Running Locally
 
@@ -187,6 +190,59 @@ Current active implementation:
 The prototype simulator under `src/prototype/software/` provides a hardware-free
 mock/demo path; the active hardware implementation remains the single-sensor
 mmWave pipeline described above.
+
+## CI/CD
+
+GitHub Actions runs the `Python checks` job on pushes and pull requests. It
+compiles the implementation and prototype Python files and runs the
+hardware-free tests with `requirements-ci.txt`. These automated checks do not
+validate a physical radar connection.
+
+Run the same checks locally with:
+
+```bash
+python -m pip install -r requirements-ci.txt
+python -m compileall -q src/implementation src/prototype/software
+python -m pytest -q
+```
+
+To publish a downloadable release, push a version tag matching `v*` (for
+example, `v0.1.0`). After the checks pass, the workflow creates a GitHub Release
+with a ZIP containing the source, runtime dependencies, setup instructions, and
+a placeholder `sensors.json`. The release does not include the workstation's
+local serial-port settings. Run a live radar smoke test on the target computer
+before treating a release as hardware-validated.
+
+After merging the workflow to the branch you want to release, create and push a
+tag:
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+The release job uses the repository's built-in `GITHUB_TOKEN`; no additional
+secret is needed. If repository or organization policy restricts workflow
+permissions, allow the release job to write repository contents. To block
+merges when checks fail, configure the `Python checks` status check as required
+in the repository's branch protection rule or ruleset.
+
+### Installing a release bundle
+
+Unzip the release archive, create a virtual environment, and install its
+dependencies:
+
+```bash
+python -m venv .venv
+# Windows PowerShell: .venv\Scripts\Activate.ps1
+# macOS/Linux: source .venv/bin/activate
+python -m pip install -r requirements.txt
+```
+
+The bundled `src/implementation/sensors.json` uses `COM?` placeholders. Replace
+them with the CLI and data port names for the connected radar before using the
+multi-radar viewer. For the single-sensor mapper, pass the actual ports and
+configuration path as shown in [Running Locally](#running-locally).
 
 ## Contributing
 

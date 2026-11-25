@@ -20,7 +20,6 @@ import threading
 import time
 
 import numpy as np
-import serial
 
 MAGIC = b"\x02\x01\x04\x03\x06\x05\x08\x07"
 HDR = struct.Struct("<8s8I")   # magic, version, totalLen, platform, frameNum,
@@ -76,6 +75,8 @@ def send_config(cli, path, name="", start=False, verbose=False):
 # Frame parser (one thread per sensor)
 # ----------------------------------------------------------------------------
 def reader(port, q, stop):
+    import serial
+
     buf = bytearray()
     while not stop.is_set():
         try:
@@ -137,6 +138,8 @@ class RadarLink:
     """One EVM: CLI port + data port + reader thread."""
 
     def __init__(self, name, cli_port, data_port, cfg_path, verbose=False):
+        import serial
+
         self.name, self.cfg_path, self.verbose = name, cfg_path, verbose
         self.cli = serial.Serial(cli_port, 115200, timeout=1.0)
         self.data = serial.Serial(data_port, 921600, timeout=0.1)
