@@ -10,13 +10,20 @@ setup:
   - "python -m venv .venv"
   - ".venv\\Scripts\\activate  # Windows"
   - "pip install --upgrade pip"
-  - "pip install numpy pyserial open3d dash plotly"
+  - "pip install -r requirements.txt"
 
 build:
-  - "python -m compileall src/implementation"
+  - "python -m compileall -q src/implementation src/prototype/software"
 
 test:
-  - "pytest -q  # no dedicated radar hardware tests are included in this repo"
+  - "pip install -r requirements-ci.txt"
+  - "python -m pytest -q  # hardware-free checks; physical radar validation is manual"
+
+ci_cd:
+  provider: "GitHub Actions"
+  ci: "Run compileall and pytest on pushes and pull requests"
+  cd: "Create a ZIP GitHub Release after checks pass for a v* tag"
+  hardware_validation: "Manual live radar smoke test on the target computer"
 
 run:
   - "python src\\implementation\\single_sensor_implementation.py --cli COM5 --data COM6 --cfg src\\implementation\\mapping.cfg --voxel 0.10 --min-hits 5 --height 1.0 --pitch 0.0"
